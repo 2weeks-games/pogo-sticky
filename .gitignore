@@ -1,0 +1,12 @@
+.DS_Store
+*.blend1
+*.*~
+.vscode/settings.json
+/tweaks
+/_site
+
+archive/
+*.afphoto
+*~lock~
+.vimpath
+

@@ -1,0 +1,70 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "tweaks",
+            "request": "launch",
+            "name": "Launch Client",
+            "project": "${workspaceFolder}/client",
+            "args": ["--trace-startup-manifest"]
+        },
+        {
+            "type": "tweaks",
+            "request": "launch",
+            "name": "Launch Client (shadow context)",
+            "project": "${workspaceFolder}/client",
+            "args": ["--shadow-context"],
+        },
+        {
+            "type": "tweaks",
+            "request": "launch",
+            "name": "Launch Host",
+            "project": "${workspaceFolder}/client",
+            "args": ["--auto-create"]
+        },
+        { 
+            "type": "tweaks",
+            "request": "launch",
+            "name": "Launch Participant",
+            "project": "${workspaceFolder}/client",
+            "args": ["--auto-join"],
+            "suppressMultipleSessionWarning": true
+        },
+        { 
+            "type": "tweaks",
+            "request": "launch",
+            "name": "Launch Participant (no auto-join)",
+            "project": "${workspaceFolder}/client",
+            "args": ["--participant"],
+            "suppressMultipleSessionWarning": true
+        },
+        { 
+            "type": "tweaks",
+            "request": "launch",
+            "name": "Launch Current File",
+            "project": "${fileDirname}",
+            "args": [],
+            "suppressMultipleSessionWarning": true
+        },
+    ],
+    "compounds": [
+        {
+            "name": "Host/Participant",
+            "configurations": ["Launch Host", "Launch Participant"],
+            "stopAll": true
+        },
+        {
+            "name": "Host/Participant (no auto-join)",
+            "configurations": ["Launch Host", "Launch Participant (no auto-join)"],
+            "stopAll": true
+        },
+        {
+            "name": "Host/Participant x3",
+            "configurations": ["Launch Host", "Launch Participant", "Launch Participant", "Launch Participant"],
+            "stopAll": true
+        }
+    ]
+}

@@ -1,0 +1,62 @@
+name: publish
+on:
+  workflow_dispatch:
+    inputs:
+      clean:
+        description: ""
+        type: boolean
+        required: false
+        default: false
+      project_path:
+        description: "path to the project to publish"
+        required: true
+        default: 'client'
+        
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Restore project folder cache
+        uses: actions/cache/restore@v3
+        if: ${{ !inputs.clean }}
+        with:
+          key: ${{ runner.os }}-build-kaiju-defense-club-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-build-kaiju-defense-club
+          path: |
+            ${{ github.workspace }}
+            !${{ github.workspace }}/emsdk-cache
+      - name: Checkout root
+        uses: actions/checkout@v4
+        with:
+          clean: ${{ inputs.clean }}
+          submodules: true
+          token: ${{ secrets.REPOSITORY_CONTENTS_2WEEKS_PAT }}
+      - name: Checkout tweaks repository
+        uses: actions/checkout@v2
+        with:
+          clean: ${{ inputs.clean }}
+          ssh-key: ${{ secrets.TWEAKS_DEPLOY_PRIVATE_KEY }}
+          repository: 2weeks-games/tweaks
+          path: 'tweaks'
+      - name: Setup tweaks emscripten build tools
+        uses: ./tweaks/.github/actions/setup_emscripten
+        with:
+          tweaks_root: ${{ github.workspace }}/tweaks/
+      - name: Package web app
+        run: python tweaks/build/package_web_app.py ${{ inputs.project_path }} _site/ --title "Kaiju Defense Club" --syndication-target 2weeks
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v2.0.0
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v2
+      - name: Save project folder in the cache
+        uses: actions/cache/save@v3
+        if: always()
+        with:
+          key: ${{ runner.os }}-build-kaiju-defense-club-${{ github.sha }}
+          path: |
+            ${{ github.workspace }}
+            !${{ github.workspace }}/emsdk-cache
