@@ -1,0 +1,17 @@
+return {
+	background = -1,
+	below = 0,
+	default = 1,
+	above = 2,
+	enemies = 3,
+	weapons = 4,
+	powerups = 4,
+	boss = 5,
+	boss_cracks = 6,
+	superweapons = 6,
+	turret = 7,
+	damage_floaters = 8,
+	warning = 8,
+	hud = 8,
+	cursors = 9,
+}
