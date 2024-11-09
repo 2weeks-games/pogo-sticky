@@ -135,7 +135,7 @@ function game_mode:create_block(x, y, w, h)
 	ground.transform:set_world_translation(vec2.pack(x, (y + h - ground_height)))
 	ground:create_box2d_physics('static')
 	ground.box2d_physics.body:create_fixture(box2d.create_box_shape(w * scale, ground_height * scale))
-	table.insert(ground_bodies, ground.box2d_physics.body)
+	table.insert(self.scene.ground_bodies, ground.box2d_physics.body)
 end
 
 function game_mode:spawn_turret(variant, position, rotation, is_hook_controlled, player_input)

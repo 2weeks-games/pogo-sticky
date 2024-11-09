@@ -14,6 +14,8 @@ local HOOK_SIZE_UPGRADE_MAX = 4
 function player_move:init (entity, variant, location, rotation, aim_component, input_manager)
 	class.super(player_move).init(self, entity)
 	local scale = self.entity.scene:get_box2d_scale(1)
+	self.contact_timer = 0
+	self.jump_cooldown = 0.0
 
 	self:set_aim_component(aim_component)
 	self._input_manager = input_manager
@@ -44,6 +46,12 @@ function player_move:init (entity, variant, location, rotation, aim_component, i
 		box2d.create_polygon_shape(2*scale,-1*scale, -2*scale,-1*scale, -2*scale,5*scale, 2*scale,5*scale), {
 		is_sensor = true,
 	})
+	if self.entity.scene.contact_counts == nil then
+		self.entity.scene.contact_counts = {}
+	end
+	self.entity.scene.contact_counts[self.entity_physics.body.id] = 0
+	self.entity_physics.event_begin_contact:register(self._on_begin_contact)
+	self.entity_physics.event_end_contact:register(self._on_end_contact)
 
 	-- Store variant for position-specific logic
 	self.variant = variant
@@ -87,16 +95,54 @@ function player_move:get_aim_transform ()
 	return self._aim_transform
 end
 
-function player_move:_move(key, impulseX, impulseY)
-	local value, elapsed = self._aim_component._player_input:get_key_state(key)
-	if value and elapsed == 0.0 then
-		--print(key .. " " .. tostring(value) .. " " .. tostring(elapsed))
-		local body = self.entity_physics.body
-		local mass = body:get_mass()
-		impulseX = impulseX * mass
-		impulseY = impulseY * mass
-		body:apply_linear_impulse(vec2.pack(impulseX, impulseY),
-			body:get_world_point())
+local function is_ground_body(body, bodies)
+	for i = 1,#bodies do
+		if (bodies[i] == body) then
+			return true
+		end
+	end
+	return false
+end
+
+local function increment_contact_count(self, a, b, inc)
+	local a_is_ground = is_ground_body(a.body, self.entity.scene.ground_bodies)
+	local b_is_ground = is_ground_body(b.body, self.entity.scene.ground_bodies)
+	local other = a_is_ground and a or b_is_ground and b or nil
+	if other ~= nil then
+		local id = a == other and b.body.id or a.body.id
+		self.entity.scene.contact_counts[id] = self.entity.scene.contact_counts[id] + inc
+		--print(self.entity.scene.contact_counts[id])
+	end
+end
+
+function player_move:_on_begin_contact(a, b)
+	increment_contact_count(self, a, b, 1)
+end
+
+function player_move:_on_end_contact(a, b)
+	increment_contact_count(self, a, b, -1)
+end
+
+local function apply_impulse(body, impulseX, impulseY)
+	local mass = body:get_mass()
+	impulseX = impulseX * mass
+	impulseY = impulseY * mass
+	body:apply_linear_impulse(vec2.pack(impulseX, impulseY), body:get_world_point())
+end
+
+function player_move:_jump(contact_count)
+	if contact_count > 0 and self.jump_cooldown == 0.0 then
+		local value, elapsed = self._aim_component._player_input:get_key_state('up')
+		local size_y = self.entity.scene.size_y
+		if value then
+			--print("up " .. tostring(value) .. " " .. tostring(elapsed))
+			apply_impulse(self.entity_physics.body, 0, size_y)
+			self.jump_cooldown = 0.5
+		elseif self.contact_timer > 0.05 then
+			--print("lil jump")
+			apply_impulse(self.entity_physics.body, 0, size_y * 0.2)
+			self.jump_cooldown = 0.1
+		end
 	end
 end
 
@@ -105,15 +151,15 @@ function player_move:_on_scene_tick ()
 	--self._aim_transform.aim_point = vec2.pack(self._aim_transform.aim_point, self._aim_component:get_current_world_aim())
 	--self._aim_transform:look_at_world_2d(self._aim_transform.aim_point)
 
-	-- Powerup timing
-	--if self.recent_powerup_time_remaining > 0 then
-	--	self.recent_powerup_time_remaining = self.recent_powerup_time_remaining - self.entity.scene.tick_rate
-	--end
+	local contact_count = self.entity.scene.contact_counts[self.entity_physics.body.id]
+	if contact_count > 0 then
+		self.contact_timer = self.contact_timer + self.entity.scene.tick_rate
+	end
+	self.jump_cooldown = math.max(0.0, self.jump_cooldown - self.entity.scene.tick_rate)
+	--print("contact " .. self.contact_timer .. " jump " .. self.jump_cooldown)
 
-	--self:_move('left', -1, 0)
-	--self:_move('right', 1, 0)
-	self:_move('up', 0, 5/2.7)
-	--self:_move('down', 0, -1)
+	-- jump and pogo
+	self:_jump(contact_count)
 
 	-- move left / right
 	local body = self.entity_physics.body
