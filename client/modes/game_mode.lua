@@ -1,10 +1,10 @@
 --
---     __________                     _________ __  .__        __           
---     \______   \____   ____   ____ /   _____//  |_|__| ____ |  | _____.__.
---      |     ___/  _ \ / ___\ /  _ \\_____  \\   __\  |/ ___\|  |/ <   |  |
---      |    |  (  <_> ) /_/  >  <_> )        \|  | |  \  \___|    < \___  |
---      |____|   \____/\___  / \____/_______  /|__| |__|\___  >__|_ \/ ____|
---                    /_____/               \/              \/     \/\/     
+--	 __________					 _________ __  .__		__		   
+--	 \______   \____   ____   ____ /   _____//  |_|__| ____ |  | _____.__.
+--	  |	 ___/  _ \ / ___\ /  _ \\_____  \\   __\  |/ ___\|  |/ <   |  |
+--	  |	|  (  <_> ) /_/  >  <_> )		\|  | |  \  \___|	< \___  |
+--	  |____|   \____/\___  / \____/_______  /|__| |__|\___  >__|_ \/ ____|
+--					/_____/			   \/			  \/	 \/\/	 
 --
 
 local resources = require 'resources'
@@ -15,80 +15,54 @@ local mode = require 'modes/mode'
 local animated_sprite = require 'components/animated_sprite'
 local entity_shake = require 'components/entity_shake'
 local input_manager = require 'components/input_manager'
-local controlled_turret = require 'components/controlled_turret'
+local player_move = require 'components/player_move'
 local player_aim_component = require 'components/player_aim'
 local player_config = require 'config/player_config'
 
-local level_size_x, level_size_y = 960, 540
 local wall_thickness = 5
-local gravity = vec2.pack(0, -9.8 * level_size_y * 4000.0)
 local contact_count = 0
 local contact_timer = 0.0
 local jump_cooldown = 0.0
 local restitution = 0.0
-local ground_height = level_size_y * 0.01
 local ground_bodies = {}
-
-function create_block(scene, x, y, w, h)
-	local scale = scene:get_box2d_scale(1)
-	x = x - scene.size_x / 2
-	y = y - scene.size_y / 2
-
-	local block = scene:create_entity('block')
-	block:create_transform()
-	block.transform:set_world_translation(vec2.pack(x * scale, (y - ground_height) * scale))
-	block:create_box2d_physics('static')
-	block.box2d_physics.body:create_fixture(box2d.create_box_shape(w * scale, (h - ground_height) * scale))
-
-	local ground = scene:create_entity('ground')
-	ground:create_transform()
-	ground.transform:set_world_translation(vec2.pack(x * scale, (y + h - ground_height) * scale))
-	ground:create_box2d_physics('static')
-	ground.box2d_physics.body:create_fixture(box2d.create_box_shape(w * scale, ground_height * scale))
-	table.insert(ground_bodies, ground.box2d_physics.body)
-
---	local ground_body = world:create_static_body({ position = vec2.pack(x, y + h - ground_height) })
---	ground_body:create_fixture(box2d.create_box_shape(w, ground_height))
---	table.insert(ground_bodies, ground_body)
-	--	is_sensor = true,
-	--	--filter_category = collision_layers.enemy,
-	--	--filter_mask = collision_layers.weapon + collision_layers.kill_plane
-	--})
-
-end
 
 ---@class game_mode:mode
 local game_mode = class.create(mode)
 
 function game_mode:init(seed, mode_players, game_session)
-	class.super(game_mode).init(self, level_size_x, level_size_y, seed, mode_players, game_session)
-	self.scene.size_x = level_size_x
-	self.scene.size_y = level_size_y
-	self.scene.ground_bodies = {}
+	class.super(game_mode).init(self, 960, 540, seed, mode_players, game_session)
 
-	--local world_hx, world_hy = self:pixel_extents()
+	-- create box2d world
+	self.scene.size_x = 8.0
+	self.scene.size_y = 8.0
+	local pixels_per_meter = self.pixel_size_y / self.scene.size_y
+	local gravity = vec2.pack(0, -9.8)
+	self.scene.ground_bodies = {}
 
 	self.scene:set_box2d_debug_draw_enabled(true)
 	local b2world = self.scene:get_box2d_world()
-	self.scene:set_box2d_world_scale(1)
-	--b2world:set_gravity(gravity)
-	b2world:set_gravity(vec2.pack(0, -9.8 * 10))
-	b2world:set_gravity(vec2.pack(0, -9.8 * 100))
+	self.scene:set_box2d_world_scale(1.0 / pixels_per_meter)
+	b2world:set_gravity(gravity)
 
+	-- create camera
 	self.camera_entity.transform.local_translation.value = vec3.pack(0, 0, 1)
 	self.camera_entity.transform:look_at_local(vec3.pack(0, 0, 0))
 	self.camera_entity:create_component(entity_shake)
 
+	-- create background
 	self.background = self.scene:create_entity('background')
 	self.background:create_transform()
 	self.background:create_sprite(resources.background_tex, sprite_layers.background, vec2.pack(960, 540), vec2.pack(960/2, 540/2))
 
-	create_block(self.scene, level_size_x * 0.2, level_size_y * 0.0, level_size_x * 0.2, level_size_y * 0.1)
-	create_block(self.scene, level_size_x * 0.8, level_size_y * 0.0, level_size_x * 0.2, level_size_y * 0.1)
-	create_block(self.scene, level_size_x * 0.2, level_size_y * 0.7, level_size_x * 0.075, level_size_y * 0.075)
-	create_block(self.scene, level_size_x * 0.3, level_size_y * 0.3, level_size_x * 0.075, level_size_y * 0.075)
-	create_block(self.scene, level_size_x * 0.7, level_size_y * 0.4, level_size_x * 0.075, level_size_y * 0.075)
-	create_block(self.scene, level_size_x * 0.75, level_size_y * 0.6, level_size_x * 0.075, level_size_y * 0.075)
+	-- create blocks
+	local s_2 = self.scene.size_y * pixels_per_meter
+	--self:create_block(s_2 * 0, s_2 *-0.45, s_2 * 1.0, s_2 * 0.1)
+	self:create_block(s_2 *-0.3, s_2 *-0.45, s_2 * 0.2, s_2 * 0.05)
+	self:create_block(s_2 * 0.3, s_2 *-0.45, s_2 * 0.2, s_2 * 0.05)
+	self:create_block(s_2 *-0.3, s_2 * 0.2, s_2 * 0.0375, s_2 * 0.0375)
+	self:create_block(s_2 *-0.2, s_2 *-0.2, s_2 * 0.0375, s_2 * 0.0375)
+	self:create_block(s_2 * 0.2, s_2 *-0.1, s_2 * 0.0375, s_2 * 0.0375)
+	self:create_block(s_2 * 0.25,s_2 * 0.1, s_2 * 0.0375, s_2 * 0.0375)
 
 	--self.player = self.scene:create_entity('player')
 	--self.player:create_transform()
@@ -107,7 +81,7 @@ function game_mode:init(seed, mode_players, game_session)
 
 	-- // Turrets
 	local turret_spawns = {
-		{ position = vec2.pack(0, level_size_y * 0.45), angle = 0 },
+		{ position = vec2.pack(0, s_2 * 0.45), angle = 0 },
 		{ position = vec2.pack(240, -270), angle = 0 },
 		{ position = vec2.pack(-240, 270), angle = 0 },
 		{ position = vec2.pack(240, 270), angle = 0 },
@@ -117,15 +91,17 @@ function game_mode:init(seed, mode_players, game_session)
 	self.turrets = {}
 	self.turret_huds = {}
 	self._turrets_by_player = {}
-	for i = 1, #self.mode_players do
-		local player = self.mode_players[i]
-		if player.play_slot and player.play_slot > 0  and player.play_slot <= #turret_spawns then
-			local spawn = turret_spawns[player.play_slot]
-			local turret = self:spawn_turret(player.play_slot, spawn.position, spawn.angle, true, self.inputs[i])
-			if turret then
-				self._turrets_by_player[player] = turret
-				table.insert(self.turrets, turret)
-				--table.insert(self.turret_huds, self:_spawn_turret_hud(player.play_slot, spawn.position, turret))
+	if true then
+		for i = 1, #self.mode_players do
+			local player = self.mode_players[i]
+			if player.play_slot and player.play_slot > 0  and player.play_slot <= #turret_spawns then
+				local spawn = turret_spawns[player.play_slot]
+				local turret = self:spawn_turret(player.play_slot, spawn.position, spawn.angle, true, self.inputs[i])
+				if turret then
+					self._turrets_by_player[player] = turret
+					table.insert(self.turrets, turret)
+					--table.insert(self.turret_huds, self:_spawn_turret_hud(player.play_slot, spawn.position, turret))
+				end
 			end
 		end
 	end
@@ -144,6 +120,24 @@ end
 function game_mode:_on_scene_update (elapsed_seconds)
 end
 
+function game_mode:create_block(x, y, w, h)
+	local scale = self.scene:get_box2d_scale(1)
+	local ground_height = self.scene.size_y * 0.01
+
+	local block = self.scene:create_entity('block')
+	block:create_transform()
+	block.transform:set_world_translation(vec2.pack(x, (y - ground_height)))
+	block:create_box2d_physics('static')
+	block.box2d_physics.body:create_fixture(box2d.create_box_shape(w * scale, (h - ground_height) * scale))
+
+	local ground = self.scene:create_entity('ground')
+	ground:create_transform()
+	ground.transform:set_world_translation(vec2.pack(x, (y + h - ground_height)))
+	ground:create_box2d_physics('static')
+	ground.box2d_physics.body:create_fixture(box2d.create_box_shape(w * scale, ground_height * scale))
+	table.insert(ground_bodies, ground.box2d_physics.body)
+end
+
 function game_mode:spawn_turret(variant, position, rotation, is_hook_controlled, player_input)
 	-- Mouse-controlled aim
 	local player_aim_entity = self.scene:create_entity('player_aim')
@@ -151,13 +145,13 @@ function game_mode:spawn_turret(variant, position, rotation, is_hook_controlled,
 
 	local turret_entity = self.scene:create_entity('turret')
 	local input = turret_entity:create_component(input_manager, player_input)
-	local turret = turret_entity:create_component(controlled_turret, variant, position, rotation, player_aim, input)
+	local turret = turret_entity:create_component(player_move, variant, position, rotation, player_aim, input)
 	turret_entity:create_component(game_framework.components.buffable)
 
-	turret.speed_x = 3.0 / 60.0 * self.scene.size_x
-	turret.speed_y = 30.0 * self.scene.size_y
-	turret.max_speed_x = 30.0 * self.scene.size_x
-	turret.max_speed_y = 30.0 * self.scene.size_y
+	turret.speed_x = 8.1 / 60.0
+	turret.speed_y = 8.1 / 60.0
+	turret.max_speed_x = 81.0
+	turret.max_speed_y = 9.0
 	turret.rotation_speed = 0.0
 
 	return turret_entity
