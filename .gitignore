@@ -9,4 +9,5 @@ archive/
 *.afphoto
 *~lock~
 .vimpath
-
+assets
+modules

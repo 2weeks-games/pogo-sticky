@@ -13,12 +13,8 @@ local sprite_layers = require 'sprite_layers'
 local component = scenes.components.component
 local transform = scenes.components.transform
 local player_move = component.derive('player_move')
+local player_config = require 'config/player_config'
 local animated_sprite = require 'components/animated_sprite'
-
--- Constants
-local RATE_OF_FIRE_UPGRADE_MAX = 4
-local HOOK_SPEED_UPGRADE_MAX = 4
-local HOOK_SIZE_UPGRADE_MAX = 4
 
 function player_move:init (entity, variant, location, rotation, aim_component, input_manager)
 	class.super(player_move).init(self, entity)
@@ -26,13 +22,13 @@ function player_move:init (entity, variant, location, rotation, aim_component, i
 	self.contact_timer = 0
 	self.jump_cooldown = 0.0
 	self.health = reactive.create_ref()
-	self.health.value = 8
+	self.health.value = player_config.health
 	self.health:register_next(self._on_health_changed, self)
-	self.speed_x = 8.1 / 60.0
-	self.speed_y = 8.1 / 60.0
-	self.max_speed_x = 81.0
-	self.max_speed_y = 9.0
-	self.rotation_speed = 0.0
+	self.speed_x = player_config.speed_x
+	self.speed_y = player_config.speed_y
+	self.max_speed_x = player_config.max_speed_x
+	self.max_speed_y = player_config.max_speed_y
+	self.rotation_speed = player_config.rotation_speed
 
 	self:set_aim_component(aim_component)
 	self._input_manager = input_manager
@@ -47,15 +43,15 @@ function player_move:init (entity, variant, location, rotation, aim_component, i
 		angle = 0.0,
 		linear_velocity = vec2.pack(0, 0),
 		angular_velocity = 0,
-		linear_damping = 0.0,
-		angular_damping = 10.0,
+		linear_damping = player_config.linear_damping,
+		angular_damping = player_config.angular_damping,
 		allow_sleep = false,
 	})
 	self.entity_physics.body:create_fixture(
 		--box2d.create_box_shape(self.entity.scene:get_box2d_scale(22, 22)), {
 		box2d.create_polygon_shape(10*scale,0*scale, -10*scale,0*scale, -10*scale,40*scale, 10*scale,40*scale), {
-		density = 1.0,
-		restitution = 0.0,
+		density = player_config.density,
+		restitution = player_config.restitution,
 		is_sensor = false,
 		--filter_category = collision_layers.turret,
 		--filter_mask = 0
@@ -75,24 +71,8 @@ function player_move:init (entity, variant, location, rotation, aim_component, i
 	self.variant = variant
 
 	-- Aim transform which rotates under the body
---	self._aim_transform = self.entity.scene:create_entity('turret_aim', self.entity).transform
---	self._aim_transform.aim_point = vec2.pack(location)
---
---	-- Weapons
---	self.weapon_basic = self.entity:create_component(tw_basic, self, input_manager)
---	self.weapon_beam = self.entity:create_component(tw_beam, self)
---
---	-- Scoring system
---	self.entity:create_component(scoring_system)
---
---	-- Powerup timing
---	self.recent_powerup_time_remaining = 0
---	self.recent_powerup_delay = 3.0
---
---	-- Upgrade tracking
---	self._rate_of_fire_upgrades = 0
---	self._hook_speed_upgrades = 0
---	self._hook_size_upgrades = 0
+	--self._aim_transform = self.entity.scene:create_entity('turret_aim', self.entity).transform
+	--self._aim_transform.aim_point = vec2.pack(location)
 
 	self.entity.scene.event_tick:register(self._on_scene_tick, self)
 end
