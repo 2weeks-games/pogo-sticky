@@ -3,6 +3,7 @@ local mode = require 'modes/mode'
 local game_mode = require 'modes/game_mode'
 local waiting_mode = require 'modes/waiting_mode'
 local frame_queue = require 'frame_queue'
+local game_config = require 'config/game_config'
 
 ---@class pogo_session:class
 local pogo_session = class.create()
@@ -510,6 +511,16 @@ function pogo_session:_on_state_mode_update(mode_state)
                 name = player_state.name,
                 play_slot = player_state.play_slot
             })
+        end
+        -- create some ai players
+        if #mode_players < 4 then
+            for i = #mode_players, 4 do
+                table.insert(mode_players, {
+                    name = 'AI' .. i + 1,
+                    play_slot = i + 1,
+                    is_ai = true
+                })
+            end
         end
         if not self.mode_interface then
             self.mode_interface = game_session_interface.new(self)

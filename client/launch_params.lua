@@ -75,7 +75,10 @@ function launch_params.load()
             end
         end)
         -- jump right into game mode
-        session:start_mode('Pogo Sticking')
+        threads.run_thread('start_mode', function()
+            time.wait(0.1)
+            session:start_mode('Pogo Sticking')
+        end)
     elseif args['auto-join'] or args['participant'] then
         local join_signal = signal.new()
         system.set_broadcast_handler(function(address, message)

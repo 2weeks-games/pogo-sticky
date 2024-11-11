@@ -1,3 +1,12 @@
+--
+--	 __________					 _________ __  .__		__		   
+--	 \______   \____   ____   ____ /   _____//  |_|__| ____ |  | _____.__.
+--	  |	 ___/  _ \ / ___\ /  _ \\_____  \\   __\  |/ ___\|  |/ <   |  |
+--	  |	|  (  <_> ) /_/  >  <_> )		\|  | |  \  \___|	< \___  |
+--	  |____|   \____/\___  / \____/_______  /|__| |__|\___  >__|_ \/ ____|
+--					/_____/			   \/			  \/	 \/\/	 
+--
+
 local resources = require 'resources'
 local collision_layers = require 'collision_layers'
 local sprite_layers = require 'sprite_layers'
@@ -16,6 +25,14 @@ function player_move:init (entity, variant, location, rotation, aim_component, i
 	local scale = self.entity.scene:get_box2d_scale(1)
 	self.contact_timer = 0
 	self.jump_cooldown = 0.0
+	self.health = reactive.create_ref()
+	self.health.value = 8
+	self.health:register_next(self._on_health_changed, self)
+	self.speed_x = 8.1 / 60.0
+	self.speed_y = 8.1 / 60.0
+	self.max_speed_x = 81.0
+	self.max_speed_y = 9.0
+	self.rotation_speed = 0.0
 
 	self:set_aim_component(aim_component)
 	self._input_manager = input_manager
@@ -25,12 +42,13 @@ function player_move:init (entity, variant, location, rotation, aim_component, i
 	self.entity.transform:set_world_translation(location)
 	self.entity.transform:set_world_rotation(quat.from_euler(0, 0, rotation))
 	--self.entity:create_sprite(resources.turrets[variant].body, sprite_layers.turret, vec2.pack(62, 42), vec2.pack(31, 0))
+	self.entity:create_gui_text(tostring(self.health), resources.commo_font, 32, sprite_layers.damage_floaters, { grid_align = 1 })
 	self.entity_physics = self.entity:create_box2d_physics('dynamic', {
 		angle = 0.0,
 		linear_velocity = vec2.pack(0, 0),
 		angular_velocity = 0,
 		linear_damping = 0.0,
-		--angular_damping = 10.0,
+		angular_damping = 10.0,
 		allow_sleep = false,
 	})
 	self.entity_physics.body:create_fixture(
@@ -138,6 +156,7 @@ function player_move:_jump(contact_count)
 			--print("up " .. tostring(value) .. " " .. tostring(elapsed))
 			apply_impulse(self.entity_physics.body, 0, size_y)
 			self.jump_cooldown = 0.5
+			self.health.value = self.health.value + 1
 		elseif self.contact_timer > 0.05 then
 			--print("lil jump")
 			apply_impulse(self.entity_physics.body, 0, size_y * 0.2)
@@ -147,6 +166,10 @@ function player_move:_jump(contact_count)
 end
 
 -- Events
+function player_move:_on_health_changed()
+	self.entity.gui_text:set_text(tostring(self.health.value))
+end
+
 function player_move:_on_scene_tick ()
 	--self._aim_transform.aim_point = vec2.pack(self._aim_transform.aim_point, self._aim_component:get_current_world_aim())
 	--self._aim_transform:look_at_world_2d(self._aim_transform.aim_point)
