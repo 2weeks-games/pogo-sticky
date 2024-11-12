@@ -15,6 +15,7 @@ local mode = require 'modes/mode'
 local animated_sprite = require 'components/animated_sprite'
 local entity_shake = require 'components/entity_shake'
 local input_manager = require 'components/input_manager'
+local player_ai = require 'components/player_ai'
 local player_move = require 'components/player_move'
 local player_health = require 'components/player_health'
 local player_aim_component = require 'components/player_aim'
@@ -79,7 +80,7 @@ function game_mode:init(seed, mode_players, game_session)
 			local player = self.mode_players[i]
 			if player.play_slot and player.play_slot > 0 and player.play_slot <= #player_spawns then
 				local spawn = player_spawns[player.play_slot]
-				local player = self:spawn_player(player.play_slot, spawn.position, spawn.angle, true, self.inputs[i])
+				local player = self:spawn_player(player, spawn.position, spawn.angle, true, self.inputs[i])
 				if player then
 					self._players_by_player[player] = player
 					table.insert(self.players, player)
@@ -121,10 +122,10 @@ function game_mode:create_block(x, y, w, h)
 	self.scene.bodies[ground.box2d_physics.body.id] = ground
 end
 
-function game_mode:spawn_player(variant, position, rotation, is_hook_controlled, player_input)
+function game_mode:spawn_player(mode_player, position, rotation, is_hook_controlled, player_input)
 	-- mouse aim
 	local player_aim_entity = self.scene:create_entity('player_aim')
-	local player_aim = player_aim_entity:create_component(player_aim_component, player_input, variant)
+	local player_aim = player_aim_entity:create_component(player_aim_component, player_input, mode_player.play_slot)
 
 	-- gui entity
 	local gui_entity = self.scene:create_entity('player_health')
@@ -136,9 +137,12 @@ function game_mode:spawn_player(variant, position, rotation, is_hook_controlled,
 	-- create player entity
 	local player_entity = self.scene:create_entity('player')
 	local input = player_entity:create_component(input_manager, player_input)
-	player_entity:create_component(player_move, variant, position, rotation, player_aim, input)
+	player_entity:create_component(player_move, mode_player.play_slot, position, rotation, player_aim, input)
 	player_entity:create_component(player_health, gui_entity)
 	player_entity:create_component(game_framework.components.buffable)
+	if mode_player.is_ai then
+		player_entity:create_component(player_ai, player_input, mode_player.play_slot)
+	end
 
 	return player_entity
 end
