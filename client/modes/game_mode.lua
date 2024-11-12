@@ -128,14 +128,19 @@ function game_mode:spawn_player(mode_player, position, rotation, is_hook_control
 	local player_aim = player_aim_entity:create_component(player_aim_component, player_input, mode_player.play_slot)
 
 	-- gui entity
+	local color = player_config.colors[mode_player.play_slot]
+	if not mode_player.is_ai then
+		color = '#ffffff'
+	end
 	local gui_entity = self.scene:create_entity('player_health')
 	gui_entity:create_transform()
 	gui_entity.transform:set_world_translation(vec2.pack(0, 0))
 	--gui_entity.transform:set_world_rotation(quat.from_euler(0, 0, rotation))
-	gui_entity:create_gui_text(tostring(player_config.health), resources.commo_font, 32, sprite_layers.damage_floaters, { grid_align = 1 })
+	gui_entity:create_gui_text(tostring(player_config.health), resources.commo_font, 32, sprite_layers.damage_floaters, { grid_align = 1, color = color })
 
 	-- create player entity
 	local player_entity = self.scene:create_entity('player')
+	player_entity.color = color
 	local input = player_entity:create_component(input_manager, player_input)
 	player_entity:create_component(player_move, mode_player.play_slot, position, rotation, player_aim, input)
 	player_entity:create_component(player_health, gui_entity)

@@ -15,7 +15,16 @@ local player_config = {
     restitution = 0.0,
     input = {
         arm_long_press_time = .25
-    }
+    },
+	colors = {
+		'#ff8080',
+		'#80ff80',
+		'#8080ff',
+		'#ff80ff',
+		'#80ffff',
+		'#ffff80',
+		'#ffffff',
+	}
 }
 
 return player_config
