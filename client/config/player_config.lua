@@ -3,7 +3,7 @@
 ]]
 
 local player_config = {
-    health = 8,
+	health = 3,
 	speed_x = 8.1 / 60.0,
 	speed_y = 8.1 / 60.0,
 	max_speed_x = 3.0,
@@ -20,13 +20,13 @@ local player_config = {
         arm_long_press_time = .25
     },
 	colors = {
-		'#ff8080',
-		'#80ff80',
-		'#8080ff',
-		'#ff80ff',
-		'#80ffff',
-		'#ffff80',
-		'#ffffff',
+		'#ff8080ff',
+		'#80ff80ff',
+		'#8080ffff',
+		'#ff80ffff',
+		'#80ffffff',
+		'#ffff80ff',
+		'#ffffffff',
 	}
 }
 

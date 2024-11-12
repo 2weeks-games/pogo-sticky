@@ -77,6 +77,8 @@ end
 
 -- Events
 function player_ai:_on_scene_tick()
+	local alive = self.entity.player_health.health.value > 0
+
 	local tick_rate = self.entity.scene.tick_rate
 	local r = self.generator:next()
 	--print("ai tick " .. self.play_slot .. " r " .. r)
@@ -85,7 +87,7 @@ function player_ai:_on_scene_tick()
 	self.cooldown = math.max(0.0, self.cooldown - tick_rate)
 	
 	-- handle movement
-	if self.cooldown == 0.0 and r < tick_rate * 2.0 then
+	if alive and self.cooldown == 0.0 and r < tick_rate * 2.0 then
 		if self:is_key_pressed('Left') then
 			self:release_key('Left')
 		elseif self:is_key_pressed('Right') then

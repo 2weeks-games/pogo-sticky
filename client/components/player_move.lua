@@ -198,6 +198,8 @@ end
 
 -- Events
 function player_move:_on_scene_tick ()
+	local alive = self.entity.player_health.health.value > 0
+
 	--self._aim_transform.aim_point = vec2.pack(self._aim_transform.aim_point, self._aim_component:get_current_world_aim())
 	--self._aim_transform:look_at_world_2d(self._aim_transform.aim_point)
 
@@ -208,22 +210,28 @@ function player_move:_on_scene_tick ()
 	self.jump_cooldown = math.max(0.0, self.jump_cooldown - self.entity.scene.tick_rate)
 	--print("contact " .. self.contact_timer .. " jump " .. self.jump_cooldown)
 
-	-- jump and pogo
-	self:_jump(contact_count)
+	if alive then
+		-- jump and pogo
+		self:_jump(contact_count)
+	end
 
-	-- move left / right
 	local body = self.entity.physics.body
 	local velx, vely = vec2.unpack(body:get_linear_velocity())
 	local avel = body:get_angular_velocity()
-	local left_down = self._aim_component._player_input:get_key_state('left')
-	local right_down = self._aim_component._player_input:get_key_state('right')
-	if left_down then
-		velx = math.max(velx - self.speed_x, -self.max_speed_x)
-		avel = avel + self.rotation_speed
-	elseif right_down then
-		velx = math.min(velx + self.speed_x, self.max_speed_x)
-		avel = avel - self.rotation_speed
+	if alive then
+		-- move left / right
+		local left_down = self._aim_component._player_input:get_key_state('left')
+		local right_down = self._aim_component._player_input:get_key_state('right')
+		if left_down then
+			velx = velx - self.speed_x
+			avel = avel + self.rotation_speed
+		elseif right_down then
+			velx = velx + self.speed_x
+			avel = avel - self.rotation_speed
+		end
 	end
+	velx = math.min(velx, self.max_speed_x)
+	velx = math.max(velx, -self.max_speed_x)
 	vely = math.min(vely, self.max_speed_y_pos)
 	vely = math.max(vely, -self.max_speed_y_neg)
 	body:set_linear_velocity(vec2.pack(velx, vely))

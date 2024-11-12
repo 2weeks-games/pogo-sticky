@@ -31,6 +31,13 @@ end
 
 function player_health:_on_health_changed()
 	self.gui_entity.gui_text:set_text(tostring(self.health.value))
+	if self.health.value <= 0 then
+		self.gui_entity.gui_text:set_color('#7f7f7f40')
+		--self.entity:destroy()
+		--self.gui_entity:destroy()
+	else
+		self.gui_entity.gui_text:set_color(self.entity.color)
+	end
 end
 
 function player_health:_on_scene_tick()
