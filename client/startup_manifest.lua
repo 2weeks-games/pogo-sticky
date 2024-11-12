@@ -205,6 +205,7 @@ return {
 	"components/input_manager.lua",
 	"components/player_aim.lua",
 	"components/player_move.lua",
+	"config/game_config.lua",
 	"config/player_config.lua",
 	"frame_queue.lua",
 	"gui/connecting_screen.lua",

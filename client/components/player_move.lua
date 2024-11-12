@@ -16,14 +16,11 @@ local player_move = component.derive('player_move')
 local player_config = require 'config/player_config'
 local animated_sprite = require 'components/animated_sprite'
 
-function player_move:init (entity, variant, location, rotation, aim_component, input_manager)
+function player_move:init(entity, variant, location, rotation, aim_component, input_manager)
 	class.super(player_move).init(self, entity)
 	local scale = self.entity.scene:get_box2d_scale(1)
 	self.contact_timer = 0
 	self.jump_cooldown = 0.0
-	self.health = reactive.create_ref()
-	self.health.value = player_config.health
-	self.health:register_next(self._on_health_changed, self)
 	self.speed_x = player_config.speed_x
 	self.speed_y = player_config.speed_y
 	self.max_speed_x = player_config.max_speed_x
@@ -38,8 +35,7 @@ function player_move:init (entity, variant, location, rotation, aim_component, i
 	self.entity.transform:set_world_translation(location)
 	self.entity.transform:set_world_rotation(quat.from_euler(0, 0, rotation))
 	--self.entity:create_sprite(resources.turrets[variant].body, sprite_layers.turret, vec2.pack(62, 42), vec2.pack(31, 0))
-	self.entity:create_gui_text(tostring(self.health), resources.commo_font, 32, sprite_layers.damage_floaters, { grid_align = 1 })
-	self.entity_physics = self.entity:create_box2d_physics('dynamic', {
+	self.entity.physics = self.entity:create_box2d_physics('dynamic', {
 		angle = 0.0,
 		linear_velocity = vec2.pack(0, 0),
 		angular_velocity = 0,
@@ -47,7 +43,7 @@ function player_move:init (entity, variant, location, rotation, aim_component, i
 		angular_damping = player_config.angular_damping,
 		allow_sleep = false,
 	})
-	self.entity_physics.body:create_fixture(
+	self.entity.physics.body:create_fixture(
 		--box2d.create_box_shape(self.entity.scene:get_box2d_scale(22, 22)), {
 		box2d.create_polygon_shape(10*scale,0*scale, -10*scale,0*scale, -10*scale,40*scale, 10*scale,40*scale), {
 		density = player_config.density,
@@ -56,16 +52,21 @@ function player_move:init (entity, variant, location, rotation, aim_component, i
 		--filter_category = collision_layers.turret,
 		--filter_mask = 0
 	})
-	self.entity_physics.body:create_fixture(
+	self.entity.size_x = 4
+	self.entity.size_y = 6
+	self.entity.physics.body:create_fixture(
 		box2d.create_polygon_shape(2*scale,-1*scale, -2*scale,-1*scale, -2*scale,5*scale, 2*scale,5*scale), {
 		is_sensor = true,
 	})
+	self.entity.scene.bodies[self.entity.physics.body.id] = self.entity
+
+	-- track contacts
 	if self.entity.scene.contact_counts == nil then
 		self.entity.scene.contact_counts = {}
 	end
-	self.entity.scene.contact_counts[self.entity_physics.body.id] = 0
-	self.entity_physics.event_begin_contact:register(self._on_begin_contact)
-	self.entity_physics.event_end_contact:register(self._on_end_contact)
+	self.entity.scene.contact_counts[self.entity.physics.body.id] = 0
+	self.entity.physics.event_begin_contact:register(self._on_begin_contact)
+	self.entity.physics.event_end_contact:register(self._on_end_contact)
 
 	-- Store variant for position-specific logic
 	self.variant = variant
@@ -93,31 +94,81 @@ function player_move:get_aim_transform ()
 	return self._aim_transform
 end
 
-local function is_ground_body(body, bodies)
-	for i = 1,#bodies do
-		if (bodies[i] == body) then
-			return true
-		end
-	end
-	return false
+local function get_entity(self, a)
+	return self.entity.scene.bodies[a.body.id]
 end
 
+--local function contains(val, table)
+--	for i = 1,#table do
+--		if (table[i] == val) then
+--			return true
+--		end
+--	end
+--	return false
+--end
+
 local function increment_contact_count(self, a, b, inc)
-	local a_is_ground = is_ground_body(a.body, self.entity.scene.ground_bodies)
-	local b_is_ground = is_ground_body(b.body, self.entity.scene.ground_bodies)
-	local other = a_is_ground and a or b_is_ground and b or nil
-	if other ~= nil then
-		local id = a == other and b.body.id or a.body.id
-		self.entity.scene.contact_counts[id] = self.entity.scene.contact_counts[id] + inc
+	if a == nil or b == nil then return end
+	local player = a.name == 'player' and a or b.name == 'player' and b or nil
+	local ground = a.name == 'ground' and a or b.name == 'ground' and b or nil
+	if player and ground then
+		self.entity.scene.contact_counts[player.physics.body.id] = self.entity.scene.contact_counts[player.physics.body.id] + inc
 		--print(self.entity.scene.contact_counts[id])
 	end
 end
 
+local function steal_health(self, a, b, inc)
+	if a == nil or b == nil then return end
+	local player1 = a.name == 'player' and a or nil
+	local player2 = b.name == 'player' and b or nil
+
+	if player1 and player2 then
+		--print("begin p" .. player1.player_move.variant .. " p" .. player2.player_move.variant .. " time " .. time.seconds_since_start())
+		-- this method is called for both players in the collision
+		-- so just return if player1 is not on top
+		local p1x, p1y = vec2.unpack(player1.transform:get_world_translation())
+		local p2x, p2y = vec2.unpack(player2.transform:get_world_translation())
+		local xo = p1x - p2x
+		local yo = p1y - p2y
+		-- check for some x overlap
+		-- this would be more accurate if we could get the player's actual width depending on their rotation
+		-- for example, if the player is laying on their side, then the width would be longer
+		--print("p1 " .. p1x .. "," .. p1y .. " " .. player1.size_x .. "x" .. player1.size_y .. " p2 " .. p2x .. "," .. p2y .. " overlap " .. xo .. "," .. yo .. " time " .. time.seconds_since_start())
+		--if math.abs(xo) > player1.size_x * 0.45 then
+		if math.abs(xo) > 20 then
+			--print("  x diff too big " .. xo)
+			return
+		end
+		-- check for player1 above player2
+		--if p1y < p2y + player2.size_y * 0.25 then return end
+		if yo < -20.0 then
+			--print("  y diff < 0 " .. yo)
+			return
+		end
+		-- check for health cooldown
+		if player2.player_health.cooldown > 0.0 then
+			--print("  health cooldown " .. player2.player_health.cooldown)
+			return
+		end
+
+		player1.player_health.health.value = player1.player_health.health.value + inc
+		player2.player_health.health.value = player2.player_health.health.value - inc
+		--print("p" .. player1.player_move.variant .. " health " .. player1.player_health.health.value
+			--.. " p" .. player2.player_move.variant .. " health " .. player2.player_health.health.value)
+		player2.player_health.cooldown = 0.5
+	end
+end
+
 function player_move:_on_begin_contact(a, b)
+	a = get_entity(self, a)
+	b = get_entity(self, b)
 	increment_contact_count(self, a, b, 1)
+	steal_health(self, a, b, 1)
 end
 
 function player_move:_on_end_contact(a, b)
+	a = get_entity(self, a)
+	b = get_entity(self, b)
 	increment_contact_count(self, a, b, -1)
 end
 
@@ -134,27 +185,22 @@ function player_move:_jump(contact_count)
 		local size_y = self.entity.scene.size_y
 		if value then
 			--print("up " .. tostring(value) .. " " .. tostring(elapsed))
-			apply_impulse(self.entity_physics.body, 0, size_y)
+			apply_impulse(self.entity.physics.body, 0, size_y)
 			self.jump_cooldown = 0.5
-			self.health.value = self.health.value + 1
 		elseif self.contact_timer > 0.05 then
 			--print("lil jump")
-			apply_impulse(self.entity_physics.body, 0, size_y * 0.2)
+			apply_impulse(self.entity.physics.body, 0, size_y * 0.2)
 			self.jump_cooldown = 0.1
 		end
 	end
 end
 
 -- Events
-function player_move:_on_health_changed()
-	self.entity.gui_text:set_text(tostring(self.health.value))
-end
-
 function player_move:_on_scene_tick ()
 	--self._aim_transform.aim_point = vec2.pack(self._aim_transform.aim_point, self._aim_component:get_current_world_aim())
 	--self._aim_transform:look_at_world_2d(self._aim_transform.aim_point)
 
-	local contact_count = self.entity.scene.contact_counts[self.entity_physics.body.id]
+	local contact_count = self.entity.scene.contact_counts[self.entity.physics.body.id]
 	if contact_count > 0 then
 		self.contact_timer = self.contact_timer + self.entity.scene.tick_rate
 	end
@@ -165,7 +211,7 @@ function player_move:_on_scene_tick ()
 	self:_jump(contact_count)
 
 	-- move left / right
-	local body = self.entity_physics.body
+	local body = self.entity.physics.body
 	local velx, vely = vec2.unpack(body:get_linear_velocity())
 	local avel = body:get_angular_velocity()
 	local left_down = self._aim_component._player_input:get_key_state('left')

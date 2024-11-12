@@ -16,6 +16,7 @@ local animated_sprite = require 'components/animated_sprite'
 local entity_shake = require 'components/entity_shake'
 local input_manager = require 'components/input_manager'
 local player_move = require 'components/player_move'
+local player_health = require 'components/player_health'
 local player_aim_component = require 'components/player_aim'
 local player_config = require 'config/player_config'
 local game_config = require 'config/game_config'
@@ -31,7 +32,7 @@ function game_mode:init(seed, mode_players, game_session)
 	self.scene.size_x = game_config.box2d_size_x
 	self.scene.size_y = game_config.box2d_size_y
 	local pixels_per_meter = self.pixel_size_y / self.scene.size_y
-	self.scene.ground_bodies = {}
+	self.scene.bodies = {}
 
 	-- create box2d world
 	self.scene:set_box2d_debug_draw_enabled(true)
@@ -69,11 +70,12 @@ function game_mode:init(seed, mode_players, game_session)
 		{ position = vec2.pack(s_2 * 0.4, s_2 * 0.1), angle = 0 },
 	}
 	self.mode_players = mode_players
+	local num_players = math.min(#mode_players, game_config.max_players)
 	self.players = {}
 	self.player_huds = {}
 	self._players_by_player = {}
 	if true then
-		for i = 1, #self.mode_players do
+		for i = 1, num_players do
 			local player = self.mode_players[i]
 			if player.play_slot and player.play_slot > 0  and player.play_slot <= #player_spawns then
 				local spawn = player_spawns[player.play_slot]
@@ -116,7 +118,7 @@ function game_mode:create_block(x, y, w, h)
 	ground.transform:set_world_translation(vec2.pack(x, (y + h - ground_height)))
 	ground:create_box2d_physics('static')
 	ground.box2d_physics.body:create_fixture(box2d.create_box_shape(w * scale, ground_height * scale))
-	table.insert(self.scene.ground_bodies, ground.box2d_physics.body)
+	self.scene.bodies[ground.box2d_physics.body.id] = ground
 end
 
 function game_mode:spawn_player(variant, position, rotation, is_hook_controlled, player_input)
@@ -128,6 +130,7 @@ function game_mode:spawn_player(variant, position, rotation, is_hook_controlled,
 	local player_entity = self.scene:create_entity('player')
 	local input = player_entity:create_component(input_manager, player_input)
 	player_entity:create_component(player_move, variant, position, rotation, player_aim, input)
+	player_entity:create_component(player_health)
 	player_entity:create_component(game_framework.components.buffable)
 
 	return player_entity
