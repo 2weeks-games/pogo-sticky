@@ -24,7 +24,8 @@ function player_move:init(entity, variant, location, rotation, aim_component, in
 	self.speed_x = player_config.speed_x
 	self.speed_y = player_config.speed_y
 	self.max_speed_x = player_config.max_speed_x
-	self.max_speed_y = player_config.max_speed_y
+	self.max_speed_y_pos = player_config.max_speed_y_pos
+	self.max_speed_y_neg = player_config.max_speed_y_neg
 	self.rotation_speed = player_config.rotation_speed
 
 	self:set_aim_component(aim_component)
@@ -185,11 +186,11 @@ function player_move:_jump(contact_count)
 		local size_y = self.entity.scene.size_y
 		if value then
 			--print("up " .. tostring(value) .. " " .. tostring(elapsed))
-			apply_impulse(self.entity.physics.body, 0, size_y)
+			apply_impulse(self.entity.physics.body, 0, player_config.jump_impulse_y)
 			self.jump_cooldown = 0.5
 		elseif self.contact_timer > 0.05 then
 			--print("lil jump")
-			apply_impulse(self.entity.physics.body, 0, size_y * 0.2)
+			apply_impulse(self.entity.physics.body, 0, player_config.pogo_impulse_y)
 			self.jump_cooldown = 0.1
 		end
 	end
@@ -223,8 +224,8 @@ function player_move:_on_scene_tick ()
 		velx = math.min(velx + self.speed_x, self.max_speed_x)
 		avel = avel - self.rotation_speed
 	end
-	vely = math.min(vely, self.max_speed_y)
-	vely = math.max(vely, -self.max_speed_y)
+	vely = math.min(vely, self.max_speed_y_pos)
+	vely = math.max(vely, -self.max_speed_y_neg)
 	body:set_linear_velocity(vec2.pack(velx, vely))
 	body:set_angular_velocity(avel)
 	--print("velx: " .. velx .. " vely: " .. vely .. " avel: " .. avel)
