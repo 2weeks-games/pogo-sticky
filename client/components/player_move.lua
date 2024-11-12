@@ -151,6 +151,11 @@ local function steal_health(self, a, b, inc)
 			--print("  health cooldown " .. player2.player_health.cooldown)
 			return
 		end
+		-- check for health
+		if player2.player_health.health.value <= 0 then
+			--print("  health <= 0 " .. player2.player_health.health.value)
+			return
+		end
 
 		player1.player_health.health.value = player1.player_health.health.value + inc
 		player2.player_health.health.value = player2.player_health.health.value - inc
