@@ -7,13 +7,13 @@
 --					/_____/			   \/			  \/	 \/\/	 
 --
 
-local resources = require 'resources'
-local collision_layers = require 'collision_layers'
-local sprite_layers = require 'sprite_layers'
 local component = scenes.components.component
 local transform = scenes.components.transform
 local player_move = component.derive('player_move')
 local player_config = require 'config/player_config'
+local resources = require 'resources'
+local collision_layers = require 'collision_layers'
+local sprite_layers = require 'sprite_layers'
 local animated_sprite = require 'components/animated_sprite'
 
 function player_move:init(entity, variant, location, rotation, aim_component, input_manager)
@@ -45,7 +45,7 @@ function player_move:init(entity, variant, location, rotation, aim_component, in
 	})
 	self.entity.physics.body:create_fixture(
 		--box2d.create_box_shape(self.entity.scene:get_box2d_scale(22, 22)), {
-		box2d.create_polygon_shape(10*scale,0*scale, -10*scale,0*scale, -10*scale,40*scale, 10*scale,40*scale), {
+		box2d.create_polygon_shape(10*scale,-20*scale, -10*scale,-20*scale, -10*scale,20*scale, 10*scale,20*scale), {
 		density = player_config.density,
 		restitution = player_config.restitution,
 		is_sensor = false,
@@ -55,7 +55,7 @@ function player_move:init(entity, variant, location, rotation, aim_component, in
 	self.entity.size_x = 4
 	self.entity.size_y = 6
 	self.entity.physics.body:create_fixture(
-		box2d.create_polygon_shape(2*scale,-1*scale, -2*scale,-1*scale, -2*scale,5*scale, 2*scale,5*scale), {
+		box2d.create_polygon_shape(2*scale,-3*scale, -2*scale,-3*scale, -2*scale,3*scale, 2*scale,3*scale), {
 		is_sensor = true,
 	})
 	self.entity.scene.bodies[self.entity.physics.body.id] = self.entity
