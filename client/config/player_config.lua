@@ -27,7 +27,8 @@ local player_config = {
 		'#80ffffff',
 		'#ffff80ff',
 		'#ffffffff',
-	}
+	},
+	color_dormant = '#7f7f7f80',
 }
 
 return player_config

@@ -513,8 +513,8 @@ function pogo_session:_on_state_mode_update(mode_state)
             })
         end
         -- create some ai players
-        if #mode_players < 4 then
-            for i = #mode_players, 4 do
+        if #mode_players < game_config.max_players then
+            for i = #mode_players, game_config.max_players - 1 do
                 table.insert(mode_players, {
                     name = 'AI' .. i + 1,
                     play_slot = i + 1,

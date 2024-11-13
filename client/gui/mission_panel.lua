@@ -152,7 +152,7 @@ function session_panel:build_session_panel(frame, session)
         align_items = 'center',
     })
     if session.connection.local_host then
-        local start_button = self:create_session_button(button_bar, 'LUNCH', 55 * resources.scale, pilot_count > 0)
+        local start_button = self:create_session_button(button_bar, 'LAUNCH', 55 * resources.scale, pilot_count > 0)
         start_button.event_clicked:register(function()
             session:start_mode('Asteroid Mining')
         end)

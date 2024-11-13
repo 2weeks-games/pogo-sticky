@@ -77,14 +77,15 @@ function game_mode:init(seed, mode_players, game_session)
 	self._players_by_player = {}
 	if true then
 		for i = 1, num_players do
-			local player = self.mode_players[i]
-			if player.play_slot and player.play_slot > 0 and player.play_slot <= #player_spawns then
-				local spawn = player_spawns[player.play_slot]
-				local player = self:spawn_player(player, spawn.position, spawn.angle, true, self.inputs[i])
+			local mode_player = self.mode_players[i]
+			if mode_player.play_slot and mode_player.play_slot > 0 and mode_player.play_slot <= #player_spawns then
+				local spawn = player_spawns[mode_player.play_slot]
+				local player = self:spawn_player(mode_player, spawn.position, spawn.angle, true, self.inputs[i])
+				player.index = i
 				if player then
 					self._players_by_player[player] = player
 					table.insert(self.players, player)
-					--table.insert(self.player_huds, self:_spawn_player_hud(player.play_slot, spawn.position, player))
+					self.player_huds[mode_player.play_slot] = self:spawn_player_hud(player, mode_player)
 				end
 			end
 		end
@@ -93,12 +94,42 @@ function game_mode:init(seed, mode_players, game_session)
 	-- music
 	--self.combat_music = audio_manager:play_music('assets/audio/music/KDC_Test_combat_3.mp3', true, 0.3)
 
+	self:on_health_changed()
 	self.scene.event_update:register(self._on_scene_update, self)
 end
 
 function game_mode:destroy()
 	class.super(game_mode).destroy(self)
 	self.scene.event_update:unregister(self._on_scene_update, self)
+end
+
+function game_mode:on_health_changed()
+	local hud_sort = {}
+	for i = 1, #self.players do
+		local player = self.players[i]
+		hud_sort[player.index] = {index = player.index, health = player.player_health.health.value}
+	end
+
+	--print("table before:")
+	--for index, val in pairs(hud_sort) do print (index, val.index, val.health) end
+	table.sort(hud_sort, function(a, b) return a.health > b.health end)
+	--print("table after:")
+	--for index, val in pairs(hud_sort) do print (index, val.index, val.health) end
+
+	local pos_x, pos_y = self.pixel_size_x * 0.5 - 40, self.pixel_size_y * 0.5 - 10
+	local rank = 1
+	for i, val in pairs(hud_sort) do
+		local player = self.players[val.index]
+		local mode_player = self.mode_players[val.index]
+		local gui_entity = self.player_huds[val.index]
+		local color = player.color
+		if val.health <= 0 then color = player_config.color_dormant end
+		gui_entity.gui_text:set_text(rank .. " " .. mode_player.name .. " " .. player.player_health.health.value)
+		gui_entity.gui_text:set_color(color)
+		gui_entity.transform:set_world_translation(vec2.pack(pos_x, pos_y))
+		pos_y = pos_y - 20
+		rank = rank + 1
+	end
 end
 
 function game_mode:_on_scene_update(elapsed_seconds)
@@ -150,6 +181,17 @@ function game_mode:spawn_player(mode_player, position, rotation, is_hook_control
 	end
 
 	return player_entity
+end
+
+function game_mode:spawn_player_hud(player_entity, mode_player)
+	-- gui entity
+	local color = player_entity.color
+	local gui_entity = self.scene:create_entity('player_hud')
+	gui_entity:create_transform()
+	gui_entity.transform:set_world_translation(vec2.pack(0, 0))
+	gui_entity:create_gui_text("", resources.commo_font, 32, sprite_layers.damage_floaters, { grid_align = 1, color = color })
+
+	return gui_entity
 end
 
 return game_mode
