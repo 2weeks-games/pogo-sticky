@@ -27,8 +27,7 @@ function player_move:init(entity, variant, location, rotation, aim_component)
 	self.max_speed_y_pos = player_config.max_speed_y_pos
 	self.max_speed_y_neg = player_config.max_speed_y_neg
 	self.rotation_speed = player_config.rotation_speed
-
-	self:set_aim_component(aim_component)
+	self._aim_component = aim_component
 
 	-- Root body
 	self.entity:create_transform()
@@ -61,10 +60,8 @@ function player_move:init(entity, variant, location, rotation, aim_component)
 	self.entity.scene.bodies[self.entity.physics.body.id] = self.entity
 
 	-- track contacts
-	if self.entity.scene.contact_counts == nil then
-		self.entity.scene.contact_counts = {}
-	end
-	self.entity.scene.contact_counts[self.entity.physics.body.id] = 0
+	self.entity.physics.ground_contact_count = 0
+	self.entity.physics.player_contact_count = 0
 	self.entity.physics.event_begin_contact:register(self._on_begin_contact)
 	self.entity.physics.event_end_contact:register(self._on_end_contact)
 
@@ -82,18 +79,6 @@ function player_move:destroy ()
 	self.entity.scene.event_tick:unregister(self._on_scene_tick, self)
 end
 
-function player_move:set_aim_component (aim_component)
-	self._aim_component = aim_component
-end
-
-function player_move:get_aim_component ()
-	return self._aim_component
-end
-
-function player_move:get_aim_transform ()
-	return self._aim_transform
-end
-
 local function get_entity(self, a)
 	return self.entity.scene.bodies[a.body.id]
 end
@@ -107,13 +92,42 @@ end
 --	return false
 --end
 
+local function is_on_top(player1, player2)
+	-- this method is called for both players in the collision
+	-- so just return false if player1 is not on top
+	--print("begin p" .. player1.player_move.variant .. " p" .. player2.player_move.variant .. " time " .. time.seconds_since_start())
+	local p1x, p1y = vec2.unpack(player1.transform:get_world_translation())
+	local p2x, p2y = vec2.unpack(player2.transform:get_world_translation())
+	local xo = p1x - p2x
+	local yo = p1y - p2y
+	-- check for some x overlap
+	-- this would be more accurate if we could get the player's actual width depending on their rotation
+	-- for example, if the player is laying on their side, then the width would be longer
+	--print("p1 " .. p1x .. "," .. p1y .. " " .. player1.size_x .. "x" .. player1.size_y .. " p2 " .. p2x .. "," .. p2y .. " overlap " .. xo .. "," .. yo .. " time " .. time.seconds_since_start())
+	--if math.abs(xo) > player1.size_x * 0.45 then
+	if math.abs(xo) > 20 then
+		--print("  x diff too big " .. xo)
+		return false
+	end
+	-- check for player1 above player2
+	--if p1y < p2y + player2.size_y * 0.25 then return end
+	if yo < -20.0 then
+		--print("  y diff < 0 " .. yo)
+		return false
+	end
+	return true
+end
+
 local function increment_contact_count(self, a, b, inc)
 	if a == nil or b == nil then return end
 	local player = a.name == 'player' and a or b.name == 'player' and b or nil
-	local ground = a.name == 'ground' and a or b.name == 'ground' and b or nil
-	if player and ground then
-		self.entity.scene.contact_counts[player.physics.body.id] = self.entity.scene.contact_counts[player.physics.body.id] + inc
-		--print(self.entity.scene.contact_counts[id])
+	local other = player == a and b or player == b and a or nil
+	if player and other then
+		if other.name == 'player' then
+			player.physics.player_contact_count = player.physics.player_contact_count + inc
+		elseif other.name == 'ground' then
+			player.physics.ground_contact_count = player.physics.ground_contact_count + inc
+		end 
 	end
 end
 
@@ -123,28 +137,13 @@ local function steal_health(self, a, b, inc)
 	local player2 = b.name == 'player' and b or nil
 
 	if player1 and player2 then
-		--print("begin p" .. player1.player_move.variant .. " p" .. player2.player_move.variant .. " time " .. time.seconds_since_start())
-		-- this method is called for both players in the collision
-		-- so just return if player1 is not on top
-		local p1x, p1y = vec2.unpack(player1.transform:get_world_translation())
-		local p2x, p2y = vec2.unpack(player2.transform:get_world_translation())
-		local xo = p1x - p2x
-		local yo = p1y - p2y
-		-- check for some x overlap
-		-- this would be more accurate if we could get the player's actual width depending on their rotation
-		-- for example, if the player is laying on their side, then the width would be longer
-		--print("p1 " .. p1x .. "," .. p1y .. " " .. player1.size_x .. "x" .. player1.size_y .. " p2 " .. p2x .. "," .. p2y .. " overlap " .. xo .. "," .. yo .. " time " .. time.seconds_since_start())
-		--if math.abs(xo) > player1.size_x * 0.45 then
-		if math.abs(xo) > 20 then
-			--print("  x diff too big " .. xo)
+		if not is_on_top(player1, player2) then
+			--print("  p1 not on top")
 			return
+		else
+			--print("  p1 is on top")
 		end
-		-- check for player1 above player2
-		--if p1y < p2y + player2.size_y * 0.25 then return end
-		if yo < -20.0 then
-			--print("  y diff < 0 " .. yo)
-			return
-		end
+		player1.player_move.on_top = true
 		-- check for health cooldown
 		if player2.player_health.cooldown > 0.0 then
 			--print("  health cooldown " .. player2.player_health.cooldown)
@@ -160,7 +159,7 @@ local function steal_health(self, a, b, inc)
 		player2.player_health.health.value = player2.player_health.health.value - inc
 		--print("p" .. player1.player_move.variant .. " health " .. player1.player_health.health.value
 			--.. " p" .. player2.player_move.variant .. " health " .. player2.player_health.health.value)
-		player2.player_health.cooldown = 0.5
+		player2.player_health.cooldown = player_config.health_cooldown
 	end
 end
 
@@ -184,18 +183,23 @@ local function apply_impulse(body, impulseX, impulseY)
 	body:apply_linear_impulse(vec2.pack(impulseX, impulseY), body:get_world_point())
 end
 
-function player_move:_jump(contact_count)
-	if contact_count > 0 and self.jump_cooldown == 0.0 then
+function player_move:_jump()
+	if self.jump_cooldown > 0.0 then return end
+
+	if self.entity.physics.ground_contact_count > 0
+	or (self.entity.physics.player_contact_count > 0 and self.on_top) then
 		local value, elapsed = self.entity.player_input:get_key_state('up')
 		local size_y = self.entity.scene.size_y
 		if value then
 			--print("up " .. tostring(value) .. " " .. tostring(elapsed))
 			apply_impulse(self.entity.physics.body, 0, player_config.jump_impulse_y)
 			self.jump_cooldown = 0.5
+			self.on_top = false
 		elseif self.contact_timer > 0.05 then
 			--print("lil jump")
 			apply_impulse(self.entity.physics.body, 0, player_config.pogo_impulse_y)
 			self.jump_cooldown = 0.1
+			self.on_top = false
 		end
 	end
 end
@@ -208,11 +212,12 @@ function player_move:_on_scene_tick ()
 	end
 	local alive = self.entity.player_health.health.value > 0
 
+	--self.entity.gui_entity.gui_text:set_text(self.entity.physics.player_contact_count .. " " .. tostring(self.on_top))
+
 	--self._aim_transform.aim_point = vec2.pack(self._aim_transform.aim_point, self._aim_component:get_current_world_aim())
 	--self._aim_transform:look_at_world_2d(self._aim_transform.aim_point)
 
-	local contact_count = self.entity.scene.contact_counts[self.entity.physics.body.id]
-	if contact_count > 0 then
+	if self.entity.physics.ground_contact_count > 0 then
 		self.contact_timer = self.contact_timer + self.entity.scene.tick_rate
 	end
 	self.jump_cooldown = math.max(0.0, self.jump_cooldown - self.entity.scene.tick_rate)
@@ -220,7 +225,7 @@ function player_move:_on_scene_tick ()
 
 	if alive then
 		-- jump and pogo
-		self:_jump(contact_count)
+		self:_jump()
 	end
 
 	local body = self.entity.physics.body
@@ -266,6 +271,10 @@ function player_move:_on_scene_tick ()
 		self.entity.transform:set_world_translation(vec2.pack(new_x, new_y))
 	end
 	--print(x .. " " .. y .. " " .. new_x .. " " .. new_y)
+
+	if self.entity.physics.player_contact_count <= 0 then
+		self.on_top = false
+	end
 end
 
 return player_move

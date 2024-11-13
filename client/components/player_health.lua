@@ -13,10 +13,9 @@ local player_config = require 'config/player_config'
 local resources = require 'resources'
 local sprite_layers = require 'sprite_layers'
 
-function player_health:init(entity, gui_entity)
+function player_health:init(entity)
 	class.super(player_health).init(self, entity)
 	self.entity = entity
-	self.gui_entity = gui_entity
 	self.health = reactive.create_ref()
 	self.health.value = player_config.health
 	self.health:register_next(self._on_health_changed, self)
@@ -31,20 +30,20 @@ function player_health:destroy ()
 end
 
 function player_health:_on_health_changed()
-	self.gui_entity.gui_text:set_text(tostring(self.health.value))
+	self.entity.gui_entity.gui_text:set_text(tostring(self.health.value))
 	if self.health.value <= 0 then
-		self.gui_entity.gui_text:set_color(player_config.color_dormant)
+		self.entity.gui_entity.gui_text:set_color(player_config.color_dormant)
 		--self.entity:destroy()
-		--self.gui_entity:destroy()
+		--self.entity.gui_entity:destroy()
 	else
-		self.gui_entity.gui_text:set_color(self.entity.color)
+		self.entity.gui_entity.gui_text:set_color(self.entity.color)
 	end
 end
 
 function player_health:_on_scene_tick()
 	if self.entity.scene.mode.finished then return end
 	self.cooldown = math.max(0.0, self.cooldown - self.entity.scene.tick_rate)
-	self.gui_entity.transform:set_world_translation(self.entity.transform:get_world_translation() + vec2.pack(0, -18))
+	self.entity.gui_entity.transform:set_world_translation(self.entity.transform:get_world_translation() + vec2.pack(0, -18))
 end
 
 return player_health

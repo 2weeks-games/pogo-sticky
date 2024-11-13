@@ -4,6 +4,7 @@
 
 local player_config = {
 	health = 3,
+	health_cooldown = 3.0,
 	speed_x = 8.1 / 60.0,
 	speed_y = 8.1 / 60.0,
 	max_speed_x = 3.0,

@@ -198,8 +198,9 @@ function game_mode:spawn_player(mode_player, position, rotation, is_hook_control
 	local player_entity = self.scene:create_entity('player')
 	player_entity.player_input = player_input
 	player_entity.color = color
+	player_entity.gui_entity = gui_entity
 	player_entity:create_component(player_move, mode_player.play_slot, position, rotation, player_aim, input)
-	player_entity:create_component(player_health, gui_entity)
+	player_entity:create_component(player_health)
 	player_entity:create_component(game_framework.components.buffable)
 	if mode_player.is_ai then
 		player_entity:create_component(player_ai, player_input, mode_player.play_slot)
