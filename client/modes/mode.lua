@@ -12,7 +12,7 @@ local mode = class.create()
 function mode:init(pixel_size_x, pixel_size_y, seed, mode_players, game_session)
     self.pixel_size_x, self.pixel_size_y = pixel_size_x, pixel_size_y
     self.scene = scenes.scene.new(resources.display)
-    self.scene.kaiju_mode = self
+    self.scene.mode = self
     self.generator = random.create_generator(seed)
     self.scene.pending_update:register(self._on_pending_update, self)
     self.game_session = game_session

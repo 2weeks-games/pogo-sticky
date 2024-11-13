@@ -11,7 +11,7 @@ function entity_health_and_death:init(entity, hp_max, kill_value)
     self.hp_max = hp_max or 1
     self.hp_current = hp_max
     self.dead = false
-    self.generator = self.entity.scene.kaiju_mode.generator
+    self.generator = self.entity.scene.mode.generator
 
     self.event_took_damage = event.new()
     self.event_death = event.new()

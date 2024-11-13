@@ -20,8 +20,8 @@ local jump_hold_duration = 0.2
 
 function player_ai:init(entity, input, play_slot)
 	class.super(player_ai).init(self, entity)
-	self.session = self.entity.scene.kaiju_mode.game_session.pogo_session
-	self.generator = self.entity.scene.kaiju_mode.generator
+	self.session = self.entity.scene.mode.game_session.pogo_session
+	self.generator = self.entity.scene.mode.generator
 	self.play_slot = play_slot
 	self.keys_down = {}
 	self.cooldown = 2.0 + play_slot + self.generator:next()

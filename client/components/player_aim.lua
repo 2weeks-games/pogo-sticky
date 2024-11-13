@@ -35,7 +35,7 @@ function player_aim:init(entity, player_input, variant)
 end
 
 function player_aim:is_local_aim()
-    local session = self.entity.scene.kaiju_mode.game_session.pogo_session
+    local session = self.entity.scene.mode.game_session.pogo_session
     return session and session.connection.local_host ~= nil
 end
 
@@ -57,7 +57,7 @@ function player_aim:_on_scene_tick()
         self.entity.transform:set_world_translation(vec3.pack(network_x, network_y, 0))
     end
     if self.local_cursor then
-        local session = self.entity.scene.kaiju_mode.game_session.pogo_session
+        local session = self.entity.scene.mode.game_session.pogo_session
         self.local_cursor.transform:set_world_translation(vec3.pack(session.local_x, session.local_y, 0))
     end
 end

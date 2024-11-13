@@ -17,7 +17,7 @@ local FLOATER_LEFT_PAD = 16
 function scoring_system:init (entity, ...)
     class.super(scoring_system).init(self, entity)
 
-    self.generator = entity.scene.kaiju_mode.generator
+    self.generator = entity.scene.mode.generator
 
     self.delay_cores = 0.2
     self.accumulation_cores = 0

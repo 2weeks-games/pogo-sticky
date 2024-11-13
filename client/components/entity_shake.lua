@@ -24,7 +24,7 @@ function entity_shake:_on_scene_update(elapsed_seconds)
             if self.shake_elapsed_time > self.ease_start then
                 eased_intensity = self.ease_out_quad(self.shake_elapsed_time - self.ease_start, self.shake_intensity, 0, self.ease_duration)
             end
-            local generator = self.entity.scene.kaiju_mode.generator
+            local generator = self.entity.scene.mode.generator
             local random_x = self.current_pos_x + (generator:next() * 2 - 1) * eased_intensity
             local random_y = self.current_pos_y + (generator:next() * 2 - 1) * eased_intensity
             self.entity.transform.local_translation.value = vec3.pack(random_x, random_y, self.current_pos_z)
