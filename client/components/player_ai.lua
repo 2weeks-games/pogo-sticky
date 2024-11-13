@@ -77,6 +77,7 @@ end
 
 -- Events
 function player_ai:_on_scene_tick()
+	if self.entity.scene.mode.finished then return end
 	local alive = self.entity.player_health.health.value > 0
 
 	local tick_rate = self.entity.scene.tick_rate

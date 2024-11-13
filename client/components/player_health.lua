@@ -42,8 +42,9 @@ function player_health:_on_health_changed()
 end
 
 function player_health:_on_scene_tick()
-    self.cooldown = math.max(0.0, self.cooldown - self.entity.scene.tick_rate)
-    self.gui_entity.transform:set_world_translation(self.entity.transform:get_world_translation() + vec2.pack(0, -18))
+	if self.entity.scene.mode.finished then return end
+	self.cooldown = math.max(0.0, self.cooldown - self.entity.scene.tick_rate)
+	self.gui_entity.transform:set_world_translation(self.entity.transform:get_world_translation() + vec2.pack(0, -18))
 end
 
 return player_health

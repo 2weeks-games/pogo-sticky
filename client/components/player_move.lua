@@ -16,7 +16,7 @@ local collision_layers = require 'collision_layers'
 local sprite_layers = require 'sprite_layers'
 local animated_sprite = require 'components/animated_sprite'
 
-function player_move:init(entity, variant, location, rotation, aim_component, input_manager)
+function player_move:init(entity, variant, location, rotation, aim_component)
 	class.super(player_move).init(self, entity)
 	local scale = self.entity.scene:get_box2d_scale(1)
 	self.contact_timer = 0
@@ -29,7 +29,6 @@ function player_move:init(entity, variant, location, rotation, aim_component, in
 	self.rotation_speed = player_config.rotation_speed
 
 	self:set_aim_component(aim_component)
-	self._input_manager = input_manager
 
 	-- Root body
 	self.entity:create_transform()
@@ -187,7 +186,7 @@ end
 
 function player_move:_jump(contact_count)
 	if contact_count > 0 and self.jump_cooldown == 0.0 then
-		local value, elapsed = self._aim_component._player_input:get_key_state('up')
+		local value, elapsed = self.entity.player_input:get_key_state('up')
 		local size_y = self.entity.scene.size_y
 		if value then
 			--print("up " .. tostring(value) .. " " .. tostring(elapsed))
@@ -203,6 +202,10 @@ end
 
 -- Events
 function player_move:_on_scene_tick ()
+	if self.entity.scene.mode.finished then
+		self.entity.physics.body:set_linear_velocity(vec2.pack(0, 0))
+		return
+	end
 	local alive = self.entity.player_health.health.value > 0
 
 	--self._aim_transform.aim_point = vec2.pack(self._aim_transform.aim_point, self._aim_component:get_current_world_aim())
@@ -225,8 +228,8 @@ function player_move:_on_scene_tick ()
 	local avel = body:get_angular_velocity()
 	if alive then
 		-- move left / right
-		local left_down = self._aim_component._player_input:get_key_state('left')
-		local right_down = self._aim_component._player_input:get_key_state('right')
+		local left_down = self.entity.player_input:get_key_state('left')
+		local right_down = self.entity.player_input:get_key_state('right')
 		if left_down then
 			velx = velx - self.speed_x
 			avel = avel + self.rotation_speed

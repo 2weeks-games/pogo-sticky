@@ -14,7 +14,6 @@ local mode = require 'modes/mode'
 
 local animated_sprite = require 'components/animated_sprite'
 local entity_shake = require 'components/entity_shake'
-local input_manager = require 'components/input_manager'
 local player_ai = require 'components/player_ai'
 local player_move = require 'components/player_move'
 local player_health = require 'components/player_health'
@@ -34,6 +33,8 @@ function game_mode:init(seed, mode_players, game_session)
 	self.scene.size_y = game_config.box2d_size_y
 	local pixels_per_meter = self.pixel_size_y / self.scene.size_y
 	self.scene.bodies = {}
+	self.finished = false
+	self.seed = seed
 
 	-- create box2d world
 	self.scene:set_box2d_debug_draw_enabled(true)
@@ -103,11 +104,30 @@ function game_mode:destroy()
 	self.scene.event_update:unregister(self._on_scene_update, self)
 end
 
+function game_mode:set_finished()
+	self.finished = true
+	local b2world = self.scene:get_box2d_world()
+	b2world:set_gravity(vec2.pack(0, 0))
+end
+
 function game_mode:on_health_changed()
 	local hud_sort = {}
+	local pos_x, pos_y = self.pixel_size_x * 0.5 - 40, self.pixel_size_y * 0.5 - 10
+	local living_count = 0
+	local rank = 1
+
 	for i = 1, #self.players do
 		local player = self.players[i]
 		hud_sort[player.index] = {index = player.index, health = player.player_health.health.value}
+		if player.player_health.health.value > 0 then
+			living_count = living_count + 1
+		end
+	end
+	
+	-- mode now finished
+	if living_count <= 1 then
+		self:set_finished()
+		pos_x, pos_y = self.pixel_size_x * 0.0 - 20, self.pixel_size_y * 0.25 - 10
 	end
 
 	--print("table before:")
@@ -116,8 +136,6 @@ function game_mode:on_health_changed()
 	--print("table after:")
 	--for index, val in pairs(hud_sort) do print (index, val.index, val.health) end
 
-	local pos_x, pos_y = self.pixel_size_x * 0.5 - 40, self.pixel_size_y * 0.5 - 10
-	local rank = 1
 	for i, val in pairs(hud_sort) do
 		local player = self.players[val.index]
 		local mode_player = self.mode_players[val.index]
@@ -133,6 +151,13 @@ function game_mode:on_health_changed()
 end
 
 function game_mode:_on_scene_update(elapsed_seconds)
+	if self.finished then
+		if self.players[1].player_input:get_key_state('arm') then
+			local session = self.game_session.pogo_session
+			session:start_mode('Pogo Sticking')
+			self:destroy()
+		end
+	end
 end
 
 function game_mode:create_block(x, y, w, h)
@@ -171,8 +196,8 @@ function game_mode:spawn_player(mode_player, position, rotation, is_hook_control
 
 	-- create player entity
 	local player_entity = self.scene:create_entity('player')
+	player_entity.player_input = player_input
 	player_entity.color = color
-	local input = player_entity:create_component(input_manager, player_input)
 	player_entity:create_component(player_move, mode_player.play_slot, position, rotation, player_aim, input)
 	player_entity:create_component(player_health, gui_entity)
 	player_entity:create_component(game_framework.components.buffable)
