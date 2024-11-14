@@ -25,12 +25,14 @@ local game_config = require 'config/game_config'
 local game_mode = class.create(mode)
 
 function game_mode:init(seed, mode_players, game_session)
+	local num_levels = 1
+	local level = require ('levels/level' .. string.format('%02d', seed % num_levels + 1))
 	class.super(game_mode).init(self, game_config.scene_pixel_size_x, game_config.scene_pixel_size_y,
 		seed, mode_players, game_session)
 
 	-- setup
-	self.scene.size_x = game_config.box2d_size_x
-	self.scene.size_y = game_config.box2d_size_y
+	self.scene.size_x = level.box2d_size_x
+	self.scene.size_y = level.box2d_size_y
 	local pixels_per_meter = self.pixel_size_y / self.scene.size_y
 	self.scene.bodies = {}
 	self.finished = false
@@ -40,7 +42,7 @@ function game_mode:init(seed, mode_players, game_session)
 	self.scene:set_box2d_debug_draw_enabled(true)
 	local b2world = self.scene:get_box2d_world()
 	self.scene:set_box2d_world_scale(1.0 / pixels_per_meter)
-	b2world:set_gravity(game_config.box2d_gravity)
+	b2world:set_gravity(level.box2d_gravity)
 
 	-- create camera
 	self.camera_entity.transform.local_translation.value = vec3.pack(0, 0, 1)
@@ -54,23 +56,14 @@ function game_mode:init(seed, mode_players, game_session)
 
 	-- create blocks
 	local s_2 = self.scene.size_y * pixels_per_meter
-	self:create_block(s_2 *-0.3, s_2 *-0.45, s_2 * 0.2, s_2 * 0.05)
-	self:create_block(s_2 * 0.3, s_2 *-0.45, s_2 * 0.2, s_2 * 0.05)
-	self:create_block(s_2 *-0.3, s_2 * 0.2, s_2 * 0.0375, s_2 * 0.0375)
-	self:create_block(s_2 *-0.2, s_2 *-0.2, s_2 * 0.0375, s_2 * 0.0375)
-	self:create_block(s_2 * 0.2, s_2 *-0.1, s_2 * 0.0375, s_2 * 0.0375)
-	self:create_block(s_2 * 0.25,s_2 * 0.1, s_2 * 0.0375, s_2 * 0.0375)
+	for k, v in pairs(level.blocks) do
+		self:create_block(v.x * s_2, v.y * s_2, v.w * s_2, v.h * s_2)
+	end
 
 	--self.background = self.scene:create_entity('background')
 	--self.background:create_sprite(resources.background_tex, sprite_layers.background, vec2.pack(960, 540), vec2.pack(960/2, 540/2))
 
 	-- create players
-	local player_spawns = {
-		{ position = vec2.pack(s_2 *-0.1, s_2 * 0.4), angle = 0 },
-		{ position = vec2.pack(s_2 * 0.1, s_2 * 0.3), angle = 0 },
-		{ position = vec2.pack(s_2 *-0.4, s_2 * 0.2), angle = 0 },
-		{ position = vec2.pack(s_2 * 0.4, s_2 * 0.1), angle = 0 },
-	}
 	self.mode_players = mode_players
 	local num_players = math.min(#mode_players, game_config.max_players)
 	self.players = {}
@@ -79,9 +72,10 @@ function game_mode:init(seed, mode_players, game_session)
 	if true then
 		for i = 1, num_players do
 			local mode_player = self.mode_players[i]
-			if mode_player.play_slot and mode_player.play_slot > 0 and mode_player.play_slot <= #player_spawns then
-				local spawn = player_spawns[mode_player.play_slot]
-				local player = self:spawn_player(mode_player, spawn.position, spawn.angle, true, self.inputs[i])
+			if mode_player.play_slot and mode_player.play_slot > 0 and mode_player.play_slot <= #level.player_spawns then
+				local spawn = level.player_spawns[mode_player.play_slot]
+				local position = vec2.pack(spawn.x * s_2, spawn.y * s_2)
+				local player = self:spawn_player(mode_player, position, spawn.angle, true, self.inputs[i])
 				player.index = i
 				player.username = mode_player.name
 				if player then
