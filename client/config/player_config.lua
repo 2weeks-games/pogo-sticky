@@ -21,6 +21,7 @@ local player_config = {
 	restitution = 0.0,
 	on_top_height = 20.0,
 	health_steal_ticks = 2,
+	ai_intelligence = 0.5,
 	colors = {
 		'#ff8080ff',
 		'#80ff80ff',
