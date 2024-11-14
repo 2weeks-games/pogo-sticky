@@ -24,7 +24,7 @@ function player_ai:init(entity, input, play_slot)
 	self.generator = self.entity.scene.mode.generator
 	self.play_slot = play_slot
 	self.keys_down = {}
-	self.cooldown = 2.0 + play_slot + self.generator:next()
+	self.cooldown = 1.0 + 0.5 * play_slot * self.generator:next()
 	self.input = input
 	
 	self.entity.scene.event_tick:register(self._on_scene_tick, self)
@@ -65,7 +65,7 @@ function player_ai:release_key(key)
 		self.input:set_state(self:key_to_state(key, false), self.entity.scene.tick_timestamp)
 		--self.session:on_local_keyboard_key_up(key)
 		self.keys_down[key] = -1.0
-		self.cooldown = 5.0 + 10.0 * self.generator:next()
+		self.cooldown = 1.0 + 2.0 * self.generator:next()
 	end
 end
 
