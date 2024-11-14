@@ -25,7 +25,7 @@ local game_config = require 'config/game_config'
 local game_mode = class.create(mode)
 
 function game_mode:init(seed, mode_players, game_session)
-	local num_levels = 1
+	local num_levels = 2
 	local level = require ('levels/level' .. string.format('%02d', seed % num_levels + 1))
 	class.super(game_mode).init(self, game_config.scene_pixel_size_x, game_config.scene_pixel_size_y,
 		seed, mode_players, game_session)
