@@ -77,6 +77,8 @@ end
 
 -- Events
 function player_ai:_on_scene_tick()
+	--if true then return end
+
 	if self.entity.scene.mode.finished then return end
 	local alive = self.entity.player_health.health.value > 0
 

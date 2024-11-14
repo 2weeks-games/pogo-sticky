@@ -61,7 +61,7 @@ function player_move:init(entity, variant, location, rotation, aim_component)
 
 	-- track contacts
 	self.entity.physics.ground_contact_count = 0
-	self.entity.physics.player_contact_count = 0
+	self.entity.physics.player_contacts = {}
 	self.entity.physics.event_begin_contact:register(self._on_begin_contact)
 	self.entity.physics.event_end_contact:register(self._on_end_contact)
 
@@ -83,13 +83,8 @@ local function get_entity(self, a)
 	return self.entity.scene.bodies[a.body.id]
 end
 
---local function contains(val, table)
---	for i = 1,#table do
---		if (table[i] == val) then
---			return true
---		end
---	end
---	return false
+--local function toint(val)
+--	return string.format("%.0f", val)
 --end
 
 local function is_on_top(player1, player2)
@@ -103,18 +98,21 @@ local function is_on_top(player1, player2)
 	-- check for some x overlap
 	-- this would be more accurate if we could get the player's actual width depending on their rotation
 	-- for example, if the player is laying on their side, then the width would be longer
-	--print("p1 " .. p1x .. "," .. p1y .. " " .. player1.size_x .. "x" .. player1.size_y .. " p2 " .. p2x .. "," .. p2y .. " overlap " .. xo .. "," .. yo .. " time " .. time.seconds_since_start())
-	--if math.abs(xo) > player1.size_x * 0.45 then
-	if math.abs(xo) > 20 then
-		--print("  x diff too big " .. xo)
-		return false
-	end
+	--print(player1.username .. " " .. toint(p1x) .. "," .. toint(p1y) .. " "
+	--	.. player2.username .. " " .. toint(p2x) .. "," .. toint(p2y) .. " overlap "
+	--	.. toint(xo) .. "," .. toint(yo) .. " time " .. time.seconds_since_start())
+	----if math.abs(xo) > player1.size_x * 0.45 then
+	--if math.abs(xo) > 20 then
+	--	--print("  x diff too big " .. xo)
+	--	return false
+	--end
 	-- check for player1 above player2
 	--if p1y < p2y + player2.size_y * 0.25 then return end
-	if yo < -20.0 then
+	if yo < player_config.on_top_height then
 		--print("  y diff < 0 " .. yo)
 		return false
 	end
+	--print("  y diff good " .. toint(yo))
 	return true
 end
 
@@ -122,28 +120,42 @@ local function increment_contact_count(self, a, b, inc)
 	if a == nil or b == nil then return end
 	local player = a.name == 'player' and a or b.name == 'player' and b or nil
 	local other = player == a and b or player == b and a or nil
+	--if a.username and a.username == 'Nat' or b.username and b.username == 'Nat' then
+	--	print("contact between " .. (a.name == 'player' and a.username or a.name) .. " and "
+	--		.. (b.name == 'player' and b.username or b.name) .. " inc " .. inc)
+	--end
 	if player and other then
 		if other.name == 'player' then
-			player.physics.player_contact_count = player.physics.player_contact_count + inc
+			if inc > 0 then
+				if not player.physics.player_contacts[other] then
+					player.physics.player_contacts[other] = {elapsed = 0.0, on_top = is_on_top(player, other)}
+					--print("  contact begin " .. player.username .. " " .. other.username .. " " .. time.seconds_since_start())
+				end
+			else
+				--print("  contact end " .. player.username .. " " .. other.username .. " " .. time.seconds_since_start())
+				player.physics.player_contacts[other] = nil
+			end
 		elseif other.name == 'ground' then
 			player.physics.ground_contact_count = player.physics.ground_contact_count + inc
 		end 
 	end
 end
 
-local function steal_health(self, a, b, inc)
-	if a == nil or b == nil then return end
-	local player1 = a.name == 'player' and a or nil
-	local player2 = b.name == 'player' and b or nil
+function player_move:_on_begin_contact(a, b)
+	a = get_entity(self, a)
+	b = get_entity(self, b)
+	increment_contact_count(self, a, b, 1)
+end
 
+function player_move:_on_end_contact(a, b)
+	a = get_entity(self, a)
+	b = get_entity(self, b)
+	increment_contact_count(self, a, b, -1)
+end
+
+function player_move:_steal_health(player2, inc)
+	local player1 = self.entity
 	if player1 and player2 then
-		if not is_on_top(player1, player2) then
-			--print("  p1 not on top")
-			return
-		else
-			--print("  p1 is on top")
-		end
-		player1.player_move.on_top = true
 		-- check for health cooldown
 		if player2.player_health.cooldown > 0.0 then
 			--print("  health cooldown " .. player2.player_health.cooldown)
@@ -157,23 +169,8 @@ local function steal_health(self, a, b, inc)
 
 		player1.player_health.health.value = player1.player_health.health.value + inc
 		player2.player_health.health.value = player2.player_health.health.value - inc
-		--print("p" .. player1.player_move.variant .. " health " .. player1.player_health.health.value
-			--.. " p" .. player2.player_move.variant .. " health " .. player2.player_health.health.value)
 		player2.player_health.cooldown = player_config.health_cooldown
 	end
-end
-
-function player_move:_on_begin_contact(a, b)
-	a = get_entity(self, a)
-	b = get_entity(self, b)
-	increment_contact_count(self, a, b, 1)
-	steal_health(self, a, b, 1)
-end
-
-function player_move:_on_end_contact(a, b)
-	a = get_entity(self, a)
-	b = get_entity(self, b)
-	increment_contact_count(self, a, b, -1)
 end
 
 local function apply_impulse(body, impulseX, impulseY)
@@ -185,54 +182,34 @@ end
 
 function player_move:_jump()
 	if self.jump_cooldown > 0.0 then return end
+	local on_top = false
+	for k, v in pairs(self.entity.physics.player_contacts) do
+		if v.on_top then
+			on_top = true
+			break
+		end
+	end
 
-	if self.entity.physics.ground_contact_count > 0
-	or (self.entity.physics.player_contact_count > 0 and self.on_top) then
+	if self.entity.physics.ground_contact_count > 0 or on_top then
 		local value, elapsed = self.entity.player_input:get_key_state('up')
 		local size_y = self.entity.scene.size_y
 		if value then
 			--print("up " .. tostring(value) .. " " .. tostring(elapsed))
 			apply_impulse(self.entity.physics.body, 0, player_config.jump_impulse_y)
-			self.jump_cooldown = 0.5
-			self.on_top = false
+			self.jump_cooldown = player_config.jump_cooldown
 		elseif self.contact_timer > 0.05 then
 			--print("lil jump")
 			apply_impulse(self.entity.physics.body, 0, player_config.pogo_impulse_y)
-			self.jump_cooldown = 0.1
-			self.on_top = false
+			self.jump_cooldown = player_config.pogo_cooldown
 		end
 	end
 end
 
--- Events
-function player_move:_on_scene_tick ()
-	if self.entity.scene.mode.finished then
-		self.entity.physics.body:set_linear_velocity(vec2.pack(0, 0))
-		return
-	end
-	local alive = self.entity.player_health.health.value > 0
-
-	--self.entity.gui_entity.gui_text:set_text(self.entity.physics.player_contact_count .. " " .. tostring(self.on_top))
-
-	--self._aim_transform.aim_point = vec2.pack(self._aim_transform.aim_point, self._aim_component:get_current_world_aim())
-	--self._aim_transform:look_at_world_2d(self._aim_transform.aim_point)
-
-	if self.entity.physics.ground_contact_count > 0 then
-		self.contact_timer = self.contact_timer + self.entity.scene.tick_rate
-	end
-	self.jump_cooldown = math.max(0.0, self.jump_cooldown - self.entity.scene.tick_rate)
-	--print("contact " .. self.contact_timer .. " jump " .. self.jump_cooldown)
-
-	if alive then
-		-- jump and pogo
-		self:_jump()
-	end
-
+function player_move:_move_x(alive)
 	local body = self.entity.physics.body
 	local velx, vely = vec2.unpack(body:get_linear_velocity())
 	local avel = body:get_angular_velocity()
 	if alive then
-		-- move left / right
 		local left_down = self.entity.player_input:get_key_state('left')
 		local right_down = self.entity.player_input:get_key_state('right')
 		if left_down then
@@ -250,8 +227,9 @@ function player_move:_on_scene_tick ()
 	body:set_linear_velocity(vec2.pack(velx, vely))
 	body:set_angular_velocity(avel)
 	--print("velx: " .. velx .. " vely: " .. vely .. " avel: " .. avel)
+end
 
-	-- warp to other side of screen if off screen
+function player_move:_warp_to_other_side()
 	local scene = self.entity.scene
 	local scale = self.entity.scene:get_box2d_scale(1)
 	local size_x, size_y = scene.size_x / scale, scene.size_y / scale
@@ -271,10 +249,53 @@ function player_move:_on_scene_tick ()
 		self.entity.transform:set_world_translation(vec2.pack(new_x, new_y))
 	end
 	--print(x .. " " .. y .. " " .. new_x .. " " .. new_y)
+end
 
-	if self.entity.physics.player_contact_count <= 0 then
-		self.on_top = false
+function player_move:_update_player_contacts()
+	--self.entity.gui_entity.gui_text:set_text("")
+	for k, v in pairs(self.entity.physics.player_contacts) do
+		v.elapsed = v.elapsed + self.entity.scene.tick_rate
+		if not is_on_top(self.entity, k) then
+			v.on_top = false
+		end
+		--if v.on_top then print(self.entity.username .. " on top " .. k.username .. " " .. string.format("%.2f", v.elapsed) .. " health " .. k.player_health.health.value .. " cooldown " .. string.format("%.2f", k.player_health.cooldown) .. " time " .. string.format("%.2f", time.seconds_since_start())) end
+		if v.on_top and v.elapsed >= player_config.health_steal_ticks * self.entity.scene.tick_rate then
+			self:_steal_health(k, 1)
+		end
+		--if self.variant == 1 then self.entity.gui_entity.gui_text:set_text(tostring(v.on_top) .. " " .. string.format("%.1f", v.elapsed)) end
+		--print("contact " .. k.player_move.variant .. " " .. v.elapsed)
 	end
+end
+
+function player_move:_on_scene_tick ()
+	if self.entity.scene.mode.finished then
+		self.entity.physics.body:set_linear_velocity(vec2.pack(0, 0))
+		return
+	end
+	local alive = self.entity.player_health.health.value > 0
+
+	--self._aim_transform.aim_point = vec2.pack(self._aim_transform.aim_point, self._aim_component:get_current_world_aim())
+	--self._aim_transform:look_at_world_2d(self._aim_transform.aim_point)
+
+	if self.entity.physics.ground_contact_count > 0 then
+		self.contact_timer = self.contact_timer + self.entity.scene.tick_rate
+	end
+	self.jump_cooldown = math.max(0.0, self.jump_cooldown - self.entity.scene.tick_rate)
+	--print("contact " .. self.contact_timer .. " jump " .. self.jump_cooldown)
+
+	-- update player contacts
+	self:_update_player_contacts()
+
+	-- jump and pogo
+	if alive then
+		self:_jump()
+	end
+
+	-- move left / right
+	self:_move_x(alive)
+
+	-- warp to other side of screen
+	self:_warp_to_other_side()
 end
 
 return player_move

@@ -29,20 +29,34 @@ function player_health:destroy ()
 	self.entity.scene.event_tick:unregister(self._on_scene_tick, self)
 end
 
-function player_health:_on_health_changed()
-	self.entity.gui_entity.gui_text:set_text(tostring(self.health.value))
+function player_health:_set_text_color()
 	if self.health.value <= 0 then
 		self.entity.gui_entity.gui_text:set_color(player_config.color_dormant)
-		--self.entity:destroy()
-		--self.entity.gui_entity:destroy()
 	else
 		self.entity.gui_entity.gui_text:set_color(self.entity.color)
 	end
 end
 
+function player_health:_on_health_changed()
+	self.entity.gui_entity.gui_text:set_text(tostring(self.health.value))
+	self:_set_text_color()
+end
+
 function player_health:_on_scene_tick()
 	if self.entity.scene.mode.finished then return end
+
+	-- update cooldown
 	self.cooldown = math.max(0.0, self.cooldown - self.entity.scene.tick_rate)
+	if self.cooldown > 0.0 then
+		local str = tostring(self.health.value)
+		for i = 0, 2 do
+			if self.cooldown > self.entity.scene.tick_rate + i then str = str .. "." end
+		end
+		self.entity.gui_entity.gui_text:set_text(str)
+		self:_set_text_color()
+	end
+	
+	-- move health gui to below player
 	self.entity.gui_entity.transform:set_world_translation(self.entity.transform:get_world_translation() + vec2.pack(0, -18))
 end
 

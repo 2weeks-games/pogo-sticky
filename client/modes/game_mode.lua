@@ -83,6 +83,7 @@ function game_mode:init(seed, mode_players, game_session)
 				local spawn = player_spawns[mode_player.play_slot]
 				local player = self:spawn_player(mode_player, spawn.position, spawn.angle, true, self.inputs[i])
 				player.index = i
+				player.username = mode_player.name
 				if player then
 					self._players_by_player[player] = player
 					table.insert(self.players, player)
@@ -138,11 +139,10 @@ function game_mode:on_health_changed()
 
 	for i, val in pairs(hud_sort) do
 		local player = self.players[val.index]
-		local mode_player = self.mode_players[val.index]
 		local gui_entity = self.player_huds[val.index]
 		local color = player.color
 		if val.health <= 0 then color = player_config.color_dormant end
-		gui_entity.gui_text:set_text(rank .. " " .. mode_player.name .. " " .. player.player_health.health.value)
+		gui_entity.gui_text:set_text(rank .. " " .. player.username .. " " .. player.player_health.health.value)
 		gui_entity.gui_text:set_color(color)
 		gui_entity.transform:set_world_translation(vec2.pack(pos_x, pos_y))
 		pos_y = pos_y - 20

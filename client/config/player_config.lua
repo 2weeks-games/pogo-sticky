@@ -1,5 +1,5 @@
 --[[
-    Config values for the player
+	Config values for the player
 ]]
 
 local player_config = {
@@ -12,14 +12,15 @@ local player_config = {
 	max_speed_y_neg = 4.0,
 	jump_impulse_y = 8.0 * 12.0,
 	pogo_impulse_y = 0.8 * 2.0,
+	jump_cooldown = 0.5,
+	pogo_cooldown = 0.1,
 	rotation_speed = 0.0,
-    linear_damping = 0.0,
-    angular_damping = 10.0,
-    density = 1.0,
-    restitution = 0.0,
-    input = {
-        arm_long_press_time = .25
-    },
+	linear_damping = 0.0,
+	angular_damping = 10.0,
+	density = 1.0,
+	restitution = 0.0,
+	on_top_height = 20.0,
+	health_steal_ticks = 2,
 	colors = {
 		'#ff8080ff',
 		'#80ff80ff',
