@@ -11,7 +11,6 @@ local resources = require 'resources'
 local sprite_layers = require 'sprite_layers'
 local client_ui = require 'client_ui'
 local mode = require 'modes/mode'
-
 local animated_sprite = require 'components/animated_sprite'
 local entity_shake = require 'components/entity_shake'
 local player_ai = require 'components/player_ai'
@@ -142,6 +141,32 @@ function game_mode:on_health_changed()
 end
 
 function game_mode:_on_scene_update(elapsed_seconds)
+	-- warp entities
+	local scene = self.scene
+	local scale = self.scene:get_box2d_scale(1)
+	local size_x, size_y = scene.size_x / scale, scene.size_y / scale
+	for k, v in pairs(self.scene._entities) do
+		if v.transform then
+			local x, y = vec2.unpack(v.transform:get_world_translation())
+			local new_x, new_y = x, y
+			if x > size_x * 0.5 then
+				new_x = new_x - size_x
+			elseif x < size_x * -0.5 then
+				new_x = new_x + size_x
+			end
+			if y > size_y * 0.5 then
+				new_y = new_y - size_y
+			elseif y < size_y * -0.5 then
+				new_y = new_y + size_y
+			end
+			if new_x ~= x or new_y ~= y then
+				v.transform:set_world_translation(vec2.pack(new_x, new_y))
+			end
+			--print(x .. " " .. y .. " " .. new_x .. " " .. new_y)
+		end
+	end
+
+	-- finished
 	if self.finished then
 		if self.players[1].player_input:get_key_state('arm') then
 			local session = self.game_session.pogo_session

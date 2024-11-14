@@ -229,28 +229,6 @@ function player_move:_move_x(alive)
 	--print("velx: " .. velx .. " vely: " .. vely .. " avel: " .. avel)
 end
 
-function player_move:_warp_to_other_side()
-	local scene = self.entity.scene
-	local scale = self.entity.scene:get_box2d_scale(1)
-	local size_x, size_y = scene.size_x / scale, scene.size_y / scale
-	local x, y = vec2.unpack(self.entity.transform:get_world_translation())
-	local new_x, new_y = x, y
-	if x > size_x * 0.5 then
-		new_x = new_x - size_x
-	elseif x < size_x * -0.5 then
-		new_x = new_x + size_x
-	end
-	if y > size_y * 0.5 then
-		new_y = new_y - size_y
-	elseif y < size_y * -0.5 then
-		new_y = new_y + size_y
-	end
-	if new_x ~= x or new_y ~= y then
-		self.entity.transform:set_world_translation(vec2.pack(new_x, new_y))
-	end
-	--print(x .. " " .. y .. " " .. new_x .. " " .. new_y)
-end
-
 function player_move:_update_player_contacts()
 	--self.entity.gui_entity.gui_text:set_text("")
 	for k, v in pairs(self.entity.physics.player_contacts) do
@@ -293,9 +271,6 @@ function player_move:_on_scene_tick ()
 
 	-- move left / right
 	self:_move_x(alive)
-
-	-- warp to other side of screen
-	self:_warp_to_other_side()
 end
 
 return player_move
