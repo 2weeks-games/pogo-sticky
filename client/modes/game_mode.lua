@@ -60,9 +60,6 @@ function game_mode:init(seed, mode_players, game_session)
 		self:create_block(v.x * s_2, v.y * s_2, v.w * s_2, v.h * s_2)
 	end
 
-	--self.background = self.scene:create_entity('background')
-	--self.background:create_sprite(resources.background_tex, sprite_layers.background, vec2.pack(960, 540), vec2.pack(960/2, 540/2))
-
 	-- create players
 	self.mode_players = mode_players
 	local num_players = math.min(#mode_players, game_config.max_players)
