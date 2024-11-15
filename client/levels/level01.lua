@@ -26,9 +26,9 @@ return {
 		{ x = 0.225,	y = -0.01,		w = 0.075,	h = 0.0375 },
 	},
 	powerup_types = {
-		--{ type = 'health' },
 		{ type = 'shield' },
-		--{ type = 'speed' },
+		{ type = 'slow' },
+		--{ type = 'health' },
 		--{ type = 'jump' },
 		--{ type = 'bounce' },
 	},

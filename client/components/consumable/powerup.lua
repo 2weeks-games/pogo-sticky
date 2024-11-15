@@ -19,6 +19,13 @@ function powerup:apply_powerup(player)
 		player.player_health.health.value = player.player_health.health.value + 1
 	elseif self.powerup_type == 'shield' then
 		player.player_health.shield.value = player.player_health.shield.value + 1
+	elseif self.powerup_type == 'slow' then
+		for _, p in pairs(self.entity.scene.mode.players) do
+			if p ~= player then
+				p.player_move.speed_factor = 0.1
+				p.player_move.speed_factor_cooldown = 10.0
+			end
+		end
 	end
 end
 

@@ -27,6 +27,8 @@ function player_move:init(entity, variant, location, rotation, aim_component)
 	self.max_speed_y_pos = player_config.max_speed_y_pos
 	self.max_speed_y_neg = player_config.max_speed_y_neg
 	self.rotation_speed = player_config.rotation_speed
+	self.speed_factor = 1.0
+	self.speed_factor_cooldown = 0.0
 	self._aim_component = aim_component
 
 	-- Root body
@@ -230,17 +232,17 @@ function player_move:_move_x(alive)
 		local left_down = self.entity.player_input:get_key_state('left')
 		local right_down = self.entity.player_input:get_key_state('right')
 		if left_down then
-			velx = velx - self.speed_x
-			avel = avel + self.rotation_speed
+			velx = velx - self.speed_x * self.speed_factor
+			avel = avel + self.rotation_speed * self.speed_factor
 		elseif right_down then
-			velx = velx + self.speed_x
-			avel = avel - self.rotation_speed
+			velx = velx + self.speed_x * self.speed_factor
+			avel = avel - self.rotation_speed * self.speed_factor
 		end
 	end
-	velx = math.min(velx, self.max_speed_x)
-	velx = math.max(velx, -self.max_speed_x)
-	vely = math.min(vely, self.max_speed_y_pos)
-	vely = math.max(vely, -self.max_speed_y_neg)
+	velx = math.min(velx, self.max_speed_x * self.speed_factor)
+	velx = math.max(velx, -self.max_speed_x * self.speed_factor)
+	vely = math.min(vely, self.max_speed_y_pos * self.speed_factor)
+	vely = math.max(vely, -self.max_speed_y_neg * self.speed_factor)
 	body:set_linear_velocity(vec2.pack(velx, vely))
 	body:set_angular_velocity(avel)
 	--print("velx: " .. velx .. " vely: " .. vely .. " avel: " .. avel)
@@ -272,10 +274,17 @@ function player_move:_on_scene_tick ()
 	--self._aim_transform.aim_point = vec2.pack(self._aim_transform.aim_point, self._aim_component:get_current_world_aim())
 	--self._aim_transform:look_at_world_2d(self._aim_transform.aim_point)
 
+	-- run timers & cooldowns
 	if self.entity.physics.ground_contact_count > 0 then
 		self.contact_timer = self.contact_timer + self.entity.scene.tick_rate
 	end
 	self.jump_cooldown = math.max(0.0, self.jump_cooldown - self.entity.scene.tick_rate)
+	if self.speed_factor_cooldown > 0.0 then
+		self.speed_factor_cooldown = math.max(0.0, self.speed_factor_cooldown - self.entity.scene.tick_rate)
+		if self.speed_factor_cooldown <= 0.0 then
+			self.speed_factor = 1.0
+		end
+	end
 	--print("contact " .. self.contact_timer .. " jump " .. self.jump_cooldown)
 
 	-- update player contacts
