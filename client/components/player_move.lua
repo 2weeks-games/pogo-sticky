@@ -23,9 +23,6 @@ function player_move:init(entity, variant, location, rotation, aim_component)
 	self.jump_cooldown = 0.0
 	self.speed_x = player_config.speed_x
 	self.speed_y = player_config.speed_y
-	self.max_speed_x = player_config.max_speed_x
-	self.max_speed_y_pos = player_config.max_speed_y_pos
-	self.max_speed_y_neg = player_config.max_speed_y_neg
 	self.rotation_speed = player_config.rotation_speed
 	self.speed_factor = 1.0
 	self.speed_factor_cooldown = 0.0
@@ -239,10 +236,6 @@ function player_move:_move_x(alive)
 			avel = avel - self.rotation_speed * self.speed_factor
 		end
 	end
-	velx = math.min(velx, self.max_speed_x * self.speed_factor)
-	velx = math.max(velx, -self.max_speed_x * self.speed_factor)
-	vely = math.min(vely, self.max_speed_y_pos * self.speed_factor)
-	vely = math.max(vely, -self.max_speed_y_neg * self.speed_factor)
 	body:set_linear_velocity(vec2.pack(velx, vely))
 	body:set_angular_velocity(avel)
 	--print("velx: " .. velx .. " vely: " .. vely .. " avel: " .. avel)

@@ -145,12 +145,13 @@ function game_mode:on_health_changed()
 end
 
 function game_mode:_on_scene_update(elapsed_seconds)
-	-- warp entities
+	-- warp entities and clamp velocity
 	local scene = self.scene
 	local scale = self.scene:get_box2d_scale(1)
 	local size_x, size_y = scene.size_x / scale, scene.size_y / scale
 	for k, v in pairs(self.scene._entities) do
 		if v.transform and v.movable then
+			-- warp entities
 			local x, y = vec2.unpack(v.transform:get_world_translation())
 			local new_x, new_y = x, y
 			if x > size_x * 0.5 then
@@ -167,6 +168,16 @@ function game_mode:_on_scene_update(elapsed_seconds)
 				v.transform:set_world_translation(vec2.pack(new_x, new_y))
 			end
 			--print(x .. " " .. y .. " " .. new_x .. " " .. new_y)
+
+			-- clamp velocity
+			local body = v.physics.body
+			local speed_factor = v.player_move and v.player_move.speed_factor or 1.0
+			local velx, vely = vec2.unpack(body:get_linear_velocity())
+			velx = math.min(velx, player_config.max_speed_x * speed_factor)
+			velx = math.max(velx, -player_config.max_speed_x * speed_factor)
+			vely = math.min(vely, player_config.max_speed_y_pos * speed_factor)
+			vely = math.max(vely, -player_config.max_speed_y_neg * speed_factor)
+			body:set_linear_velocity(vec2.pack(velx, vely))
 		end
 	end
 
