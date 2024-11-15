@@ -19,6 +19,7 @@ local player_health = require 'components/player_health'
 local player_aim_component = require 'components/player_aim'
 local player_config = require 'config/player_config'
 local game_config = require 'config/game_config'
+local powerup = require 'components/consumable/powerup'
 
 ---@class game_mode:mode
 local game_mode = class.create(mode)
@@ -36,6 +37,9 @@ function game_mode:init(seed, mode_players, game_session)
 	self.scene.bodies = {}
 	self.finished = false
 	self.seed = seed
+	self.powerup_cooldown = 1.0
+	self.powerup_cooldown_duration = level.powerup_cooldown
+	self.scene.powerup_types = level.powerup_types
 
 	-- create box2d world
 	self.scene:set_box2d_debug_draw_enabled(true)
@@ -166,6 +170,15 @@ function game_mode:_on_scene_update(elapsed_seconds)
 		end
 	end
 
+	-- spawn powerup
+	self.powerup_cooldown = math.max(self.powerup_cooldown - self.scene.tick_rate, 0)
+	if self.powerup_cooldown == 0 then
+		local pixels_per_meter = 1.0 / self.scene:get_box2d_scale(1)
+		local s_2 = self.scene.size_y * pixels_per_meter
+		self:spawn_powerup(0.0 * s_2, 0.25 * s_2)
+		self.powerup_cooldown = self.powerup_cooldown_duration
+	end
+
 	-- finished
 	if self.finished then
 		if self.players[1].player_input:get_key_state('arm') then
@@ -192,6 +205,34 @@ function game_mode:create_block(x, y, w, h)
 	ground:create_box2d_physics('static')
 	ground.box2d_physics.body:create_fixture(box2d.create_box_shape(w * scale, ground_height * scale))
 	self.scene.bodies[ground.box2d_physics.body.id] = ground
+end
+
+function game_mode:spawn_powerup(x, y)
+	local scale = self.scene:get_box2d_scale(1)
+
+	local e = self.scene:create_entity('powerup')
+	e:create_transform()
+	e.transform:set_world_translation(vec2.pack(x, y))
+	--e:create_component(animated_sprite, resources.powerup_tex, sprite_layers.powerups, vec2.pack(64, 64), vec2.pack(32, 32), 0.1)
+	e:create_component(powerup)
+
+	e.physics = e:create_box2d_physics('dynamic', {
+		linear_damping = 0.5,
+		angular_damping = 10.0,
+	})
+	e.physics.body:create_fixture(
+		box2d.create_box_shape(10*scale, 10*scale), {
+		density = 1.0,
+		restitution = 0.0,
+		is_sensor = false,
+		--filter_category = collision_layers.turret,
+		--filter_mask = 0
+	})
+--	e.physics.body:create_fixture(
+--		box2d.create_box_shape(11*scale, 11*scale), {
+--		is_sensor = true,
+--	})
+	self.scene.bodies[e.physics.body.id] = e
 end
 
 function game_mode:spawn_player(mode_player, position, rotation, is_hook_controlled, player_input)

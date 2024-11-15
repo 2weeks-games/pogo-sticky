@@ -2,6 +2,7 @@ return {
 	box2d_size_x = 8,
 	box2d_size_y = 8,
 	box2d_gravity = vec2.pack(0, -9.8),
+	powerup_cooldown = 20.0,
 	player_spawns = {
 		{ x = -0.46,	y = 0.4,	angle = 0 },
 		{ x = -0.45,	y = 0.-2,	angle = 0 },
@@ -23,5 +24,12 @@ return {
 		{ x = 0.46125,	y = 0.2125,		w = 0.0375,	h = 0.0375 },
 		{ x = 0.46125,	y = -0.2125,	w = 0.0375,	h = 0.0375 },
 		{ x = 0.225,	y = -0.01,		w = 0.075,	h = 0.0375 },
-	}
+	},
+	powerup_types = {
+		--{ type = 'health' },
+		{ type = 'shield' },
+		--{ type = 'speed' },
+		--{ type = 'jump' },
+		--{ type = 'bounce' },
+	},
 }

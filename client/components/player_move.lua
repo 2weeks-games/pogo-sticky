@@ -116,13 +116,10 @@ local function is_on_top(player1, player2)
 	return true
 end
 
-local function increment_contact_count(self, a, b, inc)
-	if a == nil or b == nil then return end
-	local player = a.name == 'player' and a or b.name == 'player' and b or nil
-	local other = player == a and b or player == b and a or nil
-	--if a.username and a.username == 'Nat' or b.username and b.username == 'Nat' then
-	--	print("contact between " .. (a.name == 'player' and a.username or a.name) .. " and "
-	--		.. (b.name == 'player' and b.username or b.name) .. " inc " .. inc)
+local function increment_contact_count(self, player, other, inc)
+	--if player.username and player.username == 'Nat' or other.username and other.username == 'Nat' then
+	--	print("contact between " .. (player.name == 'player' and player.username or player.name) .. " and "
+	--		.. (other.name == 'player' and other.username or other.name) .. " inc " .. inc)
 	--end
 	if player and other then
 		if other.name == 'player' then
@@ -141,16 +138,30 @@ local function increment_contact_count(self, a, b, inc)
 	end
 end
 
+local function consume_powerup(self, player, other)
+	local powerup = other.name == 'powerup' and other or nil
+	if player and powerup then
+		powerup.powerup:consume(player)
+	end
+end
+
 function player_move:_on_begin_contact(a, b)
 	a = get_entity(self, a)
 	b = get_entity(self, b)
-	increment_contact_count(self, a, b, 1)
+	if a == nil or b == nil then return end
+	local player = a.name == 'player' and a or b.name == 'player' and b or nil
+	local other = player == a and b or player == b and a or nil
+	increment_contact_count(self, player, other, 1)
+	consume_powerup(self, a, other)
 end
 
 function player_move:_on_end_contact(a, b)
 	a = get_entity(self, a)
 	b = get_entity(self, b)
-	increment_contact_count(self, a, b, -1)
+	if a == nil or b == nil then return end
+	local player = a.name == 'player' and a or b.name == 'player' and b or nil
+	local other = player == a and b or player == b and a or nil
+	increment_contact_count(self, player, other, -1)
 end
 
 function player_move:_steal_health(player2, inc)
@@ -166,9 +177,15 @@ function player_move:_steal_health(player2, inc)
 			--print("  health <= 0 " .. player2.player_health.health.value)
 			return
 		end
+		-- use up shield
+		if player2.player_health.shield.value > 0 then
+			player2.player_health.shield.value = math.max(player2.player_health.shield.value - inc, 0)
+			player2.player_health.cooldown = player_config.health_cooldown
+			return
+		end
 
 		player1.player_health.health.value = player1.player_health.health.value + inc
-		player2.player_health.health.value = player2.player_health.health.value - inc
+		player2.player_health.health.value = math.max(player2.player_health.health.value - inc, 0)
 		player2.player_health.cooldown = player_config.health_cooldown
 	end
 end
