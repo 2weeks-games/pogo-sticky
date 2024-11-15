@@ -150,7 +150,7 @@ function game_mode:_on_scene_update(elapsed_seconds)
 	local scale = self.scene:get_box2d_scale(1)
 	local size_x, size_y = scene.size_x / scale, scene.size_y / scale
 	for k, v in pairs(self.scene._entities) do
-		if v.transform then
+		if v.transform and v.movable then
 			local x, y = vec2.unpack(v.transform:get_world_translation())
 			local new_x, new_y = x, y
 			if x > size_x * 0.5 then
@@ -211,6 +211,7 @@ function game_mode:spawn_powerup(x, y)
 	local scale = self.scene:get_box2d_scale(1)
 
 	local e = self.scene:create_entity('powerup')
+	e.movable = true
 	e:create_transform()
 	e.transform:set_world_translation(vec2.pack(x, y))
 	--e:create_component(animated_sprite, resources.powerup_tex, sprite_layers.powerups, vec2.pack(64, 64), vec2.pack(32, 32), 0.1)
@@ -252,29 +253,30 @@ function game_mode:spawn_player(mode_player, position, rotation, is_hook_control
 	gui_entity:create_gui_text(tostring(player_config.health), resources.commo_font, 32, sprite_layers.damage_floaters, { grid_align = 1, color = color })
 
 	-- create player entity
-	local player_entity = self.scene:create_entity('player')
-	player_entity.player_input = player_input
-	player_entity.color = color
-	player_entity.gui_entity = gui_entity
-	player_entity:create_component(player_move, mode_player.play_slot, position, rotation, player_aim, input)
-	player_entity:create_component(player_health)
-	player_entity:create_component(game_framework.components.buffable)
+	local e = self.scene:create_entity('player')
+	e.player_input = player_input
+	e.color = color
+	e.gui_entity = gui_entity
+	e.movable = true
+	e:create_component(player_move, mode_player.play_slot, position, rotation, player_aim, input)
+	e:create_component(player_health)
+	e:create_component(game_framework.components.buffable)
 	if mode_player.is_ai then
-		player_entity:create_component(player_ai, player_input, mode_player.play_slot)
+		e:create_component(player_ai, player_input, mode_player.play_slot)
 	end
 
-	return player_entity
+	return e
 end
 
 function game_mode:spawn_player_hud(player_entity, mode_player)
 	-- gui entity
 	local color = player_entity.color
-	local gui_entity = self.scene:create_entity('player_hud')
-	gui_entity:create_transform()
-	gui_entity.transform:set_world_translation(vec2.pack(0, 0))
-	gui_entity:create_gui_text("", resources.commo_font, 32, sprite_layers.damage_floaters, { grid_align = 1, color = color })
+	local e = self.scene:create_entity('player_hud')
+	e:create_transform()
+	e.transform:set_world_translation(vec2.pack(0, 0))
+	e:create_gui_text("", resources.commo_font, 32, sprite_layers.damage_floaters, { grid_align = 1, color = color })
 
-	return gui_entity
+	return e
 end
 
 return game_mode
