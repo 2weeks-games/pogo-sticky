@@ -206,9 +206,9 @@ function player_move:_jump()
 		end
 	end
 
+	-- jump
 	if self.entity.physics.ground_contact_count > 0 or on_top then
 		local value, elapsed = self.entity.player_input:get_key_state('up')
-		local size_y = self.entity.scene.size_y
 		if value then
 			--print("up " .. tostring(value) .. " " .. tostring(elapsed))
 			apply_impulse(self.entity.physics.body, 0, player_config.jump_impulse_y)
@@ -217,6 +217,17 @@ function player_move:_jump()
 			--print("lil jump")
 			apply_impulse(self.entity.physics.body, 0, player_config.pogo_impulse_y)
 			self.jump_cooldown = player_config.pogo_cooldown
+		end
+	end
+	
+	-- stomp
+	if self.entity.physics.ground_contact_count == 0 and not on_top then
+		local value, elapsed = self.entity.player_input:get_key_state('down')
+		if value then
+			--print("down " .. tostring(value) .. " " .. tostring(elapsed))
+			apply_impulse(self.entity.physics.body, 0, player_config.stomp_impulse_y)
+			self.jump_cooldown = player_config.stomp_cooldown
+			self.stomping = true
 		end
 	end
 end
@@ -270,6 +281,7 @@ function player_move:_on_scene_tick ()
 	-- run timers & cooldowns
 	if self.entity.physics.ground_contact_count > 0 then
 		self.contact_timer = self.contact_timer + self.entity.scene.tick_rate
+		self.stomping = false
 	end
 	self.jump_cooldown = math.max(0.0, self.jump_cooldown - self.entity.scene.tick_rate)
 	if self.speed_factor_cooldown > 0.0 then

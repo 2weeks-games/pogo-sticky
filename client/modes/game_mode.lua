@@ -172,12 +172,19 @@ function game_mode:_on_scene_update(elapsed_seconds)
 			-- clamp velocity
 			local body = v.physics.body
 			local speed_factor = v.player_move and v.player_move.speed_factor or 1.0
+			local stomping = v.player_move and v.player_move.stomping or false
 			local velx, vely = vec2.unpack(body:get_linear_velocity())
 			velx = math.min(velx, player_config.max_speed_x * speed_factor)
 			velx = math.max(velx, -player_config.max_speed_x * speed_factor)
 			vely = math.min(vely, player_config.max_speed_y_pos * speed_factor)
-			vely = math.max(vely, -player_config.max_speed_y_neg * speed_factor)
+			if not stomping then
+				vely = math.max(vely, -player_config.max_speed_y_neg * speed_factor)
+			end
 			body:set_linear_velocity(vec2.pack(velx, vely))
+
+			--if v.gui_entity then
+			--	v.gui_entity.gui_text:set_text(tostring(stomping))
+			--end
 		end
 	end
 
