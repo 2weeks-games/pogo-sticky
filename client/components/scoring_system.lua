@@ -125,11 +125,11 @@ function scoring_system:_display_accumulated_cores (value)
 
     -- SFX
     if value >= CORE_THRESHOLD_HIGH then
-        audio_manager:play('assets/audio/sfx/cores_increase_03.mp3')
+        --audio_manager:play('assets/audio/sfx/cores_increase_03.mp3')
     elseif value >= CORE_THRESHOLD_MID then
-        audio_manager:play('assets/audio/sfx/cores_increase_02.mp3')
+        --audio_manager:play('assets/audio/sfx/cores_increase_02.mp3')
     else
-        audio_manager:play('assets/audio/sfx/cores_increase_01.mp3')
+        --audio_manager:play('assets/audio/sfx/cores_increase_01.mp3')
     end
 end
 
@@ -157,9 +157,9 @@ function scoring_system:_display_accumulated_credits (value)
 
     -- SFX
     if value >= POINTS_THRESHOLD_HIGH then
-        audio_manager:play('assets/audio/sfx/treasure_02.mp3')
+        --audio_manager:play('assets/audio/sfx/treasure_02.mp3')
     else
-        audio_manager:play('assets/audio/sfx/treasure_01.mp3')
+        --audio_manager:play('assets/audio/sfx/treasure_01.mp3')
     end
 end
 

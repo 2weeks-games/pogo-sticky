@@ -207,7 +207,7 @@ function session_panel:_play_lobby_audio(path)
     local now = time.seconds_since_start()
     if not self._lobby_audio_timestamp or now - self._lobby_audio_timestamp > .1 then
         self._lobby_audio_timestamp = now
-        audio_manager:play(path)
+        --audio_manager:play(path)
     end
 end
 

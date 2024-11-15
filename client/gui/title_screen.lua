@@ -25,7 +25,7 @@ function title_screen:init(element)
             background_size = 'contain',
             padding = 20 * resources.scale
         })
-        local panel = container:create_screen_panel('LUG IN', '#75F5D3', 269 * resources.scale)
+        local panel = container:create_screen_panel('LOG IN', '#75F5D3', 269 * resources.scale)
         local frame = panel:create_screen_frame('100%', '100%')
         local pilot_view = frame:create_screen_view('PILOT HANDLE', false, '100%')
         local initials_creator

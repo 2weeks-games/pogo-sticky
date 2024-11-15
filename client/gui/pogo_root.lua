@@ -16,7 +16,7 @@ function pogo_root:init()
 end
 
 function pogo_root:start_lobby_music()
-    audio_manager:play_music('assets/audio/music/KDC_MainMenu_01.mp3', true, 0.3)
+    --audio_manager:play_music('assets/audio/music/KDC_MainMenu_01.mp3', true, 0.3)
 end
 
 function pogo_root:build(element)
