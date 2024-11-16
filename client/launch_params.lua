@@ -61,24 +61,7 @@ function launch_params.load()
     if args['auto-create'] then
 		launch_params.lobby = pogo_lobby.new(nil, launch_params.user_name or pogo_preferences.pilot_initials)
         local lobby_connection = launch_params.lobby.connection
-        local session = launch_params.lobby:create_session(launch_params.use_shadow_context)
-        local session_connection = session.connection
-        event.wait(session_connection.event_connected)
-        threads.run_thread('initial_session_broadcast', function()
-            while session_connection.status.value == 'connected' do
-                system.broadcast(lua_data.write_text({
-                    app = 'kdc',
-                    lobby_id = lobby_connection.id,
-                    session_id = session_connection.id,
-                }))
-                time.wait(1.0)
-            end
-        end)
-        -- jump right into game mode
-        threads.run_thread('start_mode', function()
-            time.wait(0.1)
-            session:start_mode('Pogo Sticking')
-        end)
+		launch_params.skip_to_mode(launch_params.lobby, lobby_connection.id, 'Pogo Sticking')
     elseif args['auto-join'] or args['participant'] then
         local join_signal = signal.new()
         system.set_broadcast_handler(function(address, message)
@@ -103,6 +86,27 @@ function launch_params.load()
             end
         end
     end
+end
+
+function launch_params.skip_to_mode(lobby, lobby_id, mode_title)
+	local session = lobby:create_session(launch_params.use_shadow_context)
+	local session_connection = session.connection
+	event.wait(session_connection.event_connected)
+	threads.run_thread('initial_session_broadcast', function()
+		while session_connection.status.value == 'connected' do
+			system.broadcast(lua_data.write_text({
+				app = 'kdc',
+				lobby_id = lobby_id,
+				session_id = session_connection.id,
+			}))
+			time.wait(1.0)
+		end
+	end)
+	-- jump right into game mode
+	threads.run_thread('start_mode', function()
+		time.wait(0.1)
+		session:start_mode(mode_title)
+	end)
 end
 
 return launch_params

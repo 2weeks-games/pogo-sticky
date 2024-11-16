@@ -25,9 +25,9 @@ function title_screen:init(element)
             background_size = 'contain',
             padding = 20 * resources.scale
         })
-        local panel = container:create_screen_panel('LOG IN', '#75F5D3', 269 * resources.scale)
+        local panel = container:create_screen_panel('', '#75F5D3', 269 * resources.scale)
         local frame = panel:create_screen_frame('100%', '100%')
-        local pilot_view = frame:create_screen_view('PILOT HANDLE', false, '100%')
+        local pilot_view = frame:create_screen_view('NAME', false, '100%')
         local initials_creator
         if not launch_params.user_name then
             initials_creator = pilot_creator.new(pilot_view)
@@ -43,8 +43,8 @@ function title_screen:init(element)
 
 		local lobby
 		if launch_params.lobby_id then
-			local lobby_view = frame:create_screen_view('DEPLOYMENT', false, '100%')
-			lobby = lobby_selector.new(lobby_view)
+			--local lobby_view = frame:create_screen_view('DEPLOYMENT', false, '100%')
+			--lobby = lobby_selector.new(lobby_view)
 		end
 
         local launch_button_border = frame:create_element({
@@ -54,7 +54,7 @@ function title_screen:init(element)
             background_size = 'contain',
 			margin_bottom = 3,
         })
-        local launch_button = launch_button_border:create_button('LAUNCH', {
+        local launch_button = launch_button_border:create_button('PLAY', {
             width = '100%',
             height = '100%',
             align_items = 'center',

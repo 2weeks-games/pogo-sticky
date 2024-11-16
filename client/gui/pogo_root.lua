@@ -26,7 +26,9 @@ function pogo_root:build(element)
             self._lobby.value = pogo_lobby.new(lobby_id, name)
             if launch_params.session_id then
                 self._lobby.value:join_session(launch_params.session_id, launch_params.use_shadow_context)
-            end
+			else
+				launch_params.skip_to_mode(self._lobby.value, lobby_id, 'Pogo Sticking')
+			end
         end)
         experiment.ribbon_on()
         self:start_lobby_music()
