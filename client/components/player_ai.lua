@@ -16,7 +16,8 @@ local collision_layers = require 'collision_layers'
 local sprite_layers = require 'sprite_layers'
 local animated_sprite = require 'components/animated_sprite'
 
-local jump_hold_duration = 0.2
+local jump_hold_duration = 0.5
+local stomp_hold_duration = 0.2
 
 function player_ai:init(entity, input, play_slot)
 	class.super(player_ai).init(self, entity)
@@ -81,7 +82,6 @@ function player_ai:_on_scene_tick()
 
 	if self.entity.scene.mode.finished then return end
 	local alive = self.entity.player_health.health.value > 0
-
 	local tick_rate = self.entity.scene.tick_rate
 	local r = self.generator:next()
 	--print("ai tick " .. self.play_slot .. " r " .. r)
@@ -90,15 +90,28 @@ function player_ai:_on_scene_tick()
 	self.cooldown = math.max(0.0, self.cooldown - tick_rate)
 	
 	-- handle movement
-	if alive and self.cooldown == 0.0 and r < tick_rate * 2.0 then
-		if self:is_key_pressed('Left') then
-			self:release_key('Left')
-		elseif self:is_key_pressed('Right') then
-			self:release_key('Right')
-		elseif r < tick_rate * 1.0 then
-			self:press_key('Left')
-		else
-			self:press_key('Right')
+	if alive and self.cooldown == 0.0 then
+		local left_pressed = self:is_key_pressed('Left')
+		local right_pressed = self:is_key_pressed('Right')
+		if r < tick_rate * 2.0 then
+			if left_pressed then
+				self:release_key('Left')
+			elseif right_pressed then
+				self:release_key('Right')
+			elseif r < tick_rate * 1.0 then
+				self:press_key('Left')
+			else
+				self:press_key('Right')
+			end
+		end
+		if left_pressed or right_pressed then
+			if self.entity.player_move:can_jump() then
+				self:press_key('Up')
+				--print(self.entity.username .. " AI jump")
+			elseif self.entity.player_move:can_stomp() and self.entity.player_move.no_contact_timer > 0.5 then
+				self:press_key('Down')
+				--print(self.entity.username .. " AI stomp")
+			end
 		end
 	end
 
@@ -107,8 +120,10 @@ function player_ai:_on_scene_tick()
 		if v >= 0.0 then
 			self.keys_down[k] = v + tick_rate
 			
-			-- release up key
+			-- release keys
 			if k == 'Up' and self.keys_down[k] >= jump_hold_duration then
+				self:release_key(k)
+			elseif k == 'Down' and self.keys_down[k] >= stomp_hold_duration then
 				self:release_key(k)
 			end
 		end

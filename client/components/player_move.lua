@@ -20,6 +20,7 @@ function player_move:init(entity, variant, location, rotation, aim_component)
 	class.super(player_move).init(self, entity)
 	local scale = self.entity.scene:get_box2d_scale(1)
 	self.contact_timer = 0
+	self.no_contact_timer = 0
 	self.jump_cooldown = 0.0
 	self.speed_x = player_config.speed_x
 	self.speed_y = player_config.speed_y
@@ -196,18 +197,19 @@ local function apply_impulse(body, impulseX, impulseY)
 	body:apply_linear_impulse(vec2.pack(impulseX, impulseY), body:get_world_point())
 end
 
-function player_move:_jump()
-	if self.jump_cooldown > 0.0 then return end
-	local on_top = false
-	for k, v in pairs(self.entity.physics.player_contacts) do
-		if v.on_top then
-			on_top = true
-			break
-		end
-	end
+function player_move:can_jump()
+	return self.jump_cooldown <= 0.0 and
+		(self.entity.physics.ground_contact_count > 0 or self.entity.physics.on_top)
+end
 
+function player_move:can_stomp()
+	return self.jump_cooldown <= 0.0 and
+		(self.entity.physics.ground_contact_count == 0 and not self.entity.physics.on_top)
+end
+
+function player_move:_jump()
 	-- jump
-	if self.entity.physics.ground_contact_count > 0 or on_top then
+	if self:can_jump() then
 		local value, elapsed = self.entity.player_input:get_key_state('up')
 		if value then
 			--print("up " .. tostring(value) .. " " .. tostring(elapsed))
@@ -221,7 +223,7 @@ function player_move:_jump()
 	end
 	
 	-- stomp
-	if self.entity.physics.ground_contact_count == 0 and not on_top then
+	if self:can_stomp() then
 		local value, elapsed = self.entity.player_input:get_key_state('down')
 		if value then
 			--print("down " .. tostring(value) .. " " .. tostring(elapsed))
@@ -254,10 +256,14 @@ end
 
 function player_move:_update_player_contacts()
 	--self.entity.gui_entity.gui_text:set_text("")
+	self.entity.physics.on_top = false
 	for k, v in pairs(self.entity.physics.player_contacts) do
 		v.elapsed = v.elapsed + self.entity.scene.tick_rate
 		if not is_on_top(self.entity, k) then
 			v.on_top = false
+		end
+		if v.on_top then
+			self.entity.physics.on_top = true
 		end
 		--if v.on_top then print(self.entity.username .. " on top " .. k.username .. " " .. string.format("%.2f", v.elapsed) .. " health " .. k.player_health.health.value .. " cooldown " .. string.format("%.2f", k.player_health.cooldown) .. " time " .. string.format("%.2f", time.seconds_since_start())) end
 		if v.on_top and v.elapsed >= player_config.health_steal_ticks * self.entity.scene.tick_rate then
@@ -281,7 +287,11 @@ function player_move:_on_scene_tick ()
 	-- run timers & cooldowns
 	if self.entity.physics.ground_contact_count > 0 then
 		self.contact_timer = self.contact_timer + self.entity.scene.tick_rate
+		self.no_contact_timer = 0
 		self.stomping = false
+	else
+		self.contact_timer = 0
+		self.no_contact_timer = self.no_contact_timer + self.entity.scene.tick_rate
 	end
 	self.jump_cooldown = math.max(0.0, self.jump_cooldown - self.entity.scene.tick_rate)
 	if self.speed_factor_cooldown > 0.0 then
